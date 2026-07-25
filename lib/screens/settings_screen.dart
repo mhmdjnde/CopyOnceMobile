@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
+import '../controllers/clipboard_controller.dart';
+import '../controllers/settings_controller.dart';
+import '../models/sync_settings.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'security/security_screen.dart';
 
-/// App settings screen (mock UI — no real settings are persisted).
+/// App settings. Every control here writes through to the account, so choices
+/// follow the user to their other devices.
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
 
@@ -13,9 +18,110 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _autoSync = true;
-  bool _wifiOnly = false;
-  bool _notifications = true;
+  /// Lets the user pick how long items are kept, then applies it immediately so
+  /// shortening the window takes effect now rather than on next launch.
+  Future<void> _pickRetention(int current) async {
+    final chosen = await showDialog<int>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: const Text('Keep items for'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.l,
+              0,
+              AppSpacing.l,
+              AppSpacing.m,
+            ),
+            child: const Text(
+              'Anything older is deleted from your account automatically. '
+              'Pinned items are always kept.',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+                height: 1.4,
+              ),
+            ),
+          ),
+          RadioGroup<int>(
+            groupValue: current,
+            onChanged: (value) => Navigator.of(dialogContext).pop(value),
+            child: Column(
+              children: [
+                for (final days in SyncSettings.retentionChoices)
+                  RadioListTile<int>(
+                    value: days,
+                    title: Text(SyncSettings.retentionLabel(days)),
+                    activeColor: AppColors.accent,
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (chosen == null || !mounted) return;
+
+    final settings = context.read<SettingsController>();
+    await settings.setRetentionDays(chosen);
+    if (!mounted) return;
+
+    final removed = await context.read<ClipboardController>().applyRetention(
+      settings.settings ?? const SyncSettings(),
+    );
+    if (!mounted || removed == 0) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Removed $removed item${removed == 1 ? '' : 's'} past the new limit.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmClearHistory() async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear synced history?'),
+        content: const Text(
+          'Deletes every item CopyOnce has stored for your account, on all '
+          'devices. This cannot be undone.\n\n'
+          "Your phone's own clipboard is not touched — whatever you last "
+          'copied can still be pasted.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Clear'),
+          ),
+        ],
+      ),
+    );
+
+    if (!(shouldClear ?? false) || !mounted) return;
+
+    final clipboard = context.read<ClipboardController>();
+    final cleared = await clipboard.clearHistory();
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          cleared
+              ? 'Synced history cleared.'
+              : clipboard.errorMessage ?? 'Could not clear history.',
+        ),
+      ),
+    );
+  }
 
   Future<void> _confirmSignOut() async {
     final auth = context.read<AuthController>();
@@ -51,6 +157,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : double.infinity;
     final auth = context.watch<AuthController>();
     final user = auth.currentUser;
+    final settingsController = context.watch<SettingsController>();
+    final settings = settingsController.settings;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -81,6 +189,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const Divider(),
                   ListTile(
+                    leading: const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.textSecondary,
+                      size: 20,
+                    ),
+                    title: const Text('Security'),
+                    subtitle: const Text('Password and two-factor'),
+                    trailing: const Icon(
+                      Icons.chevron_right_rounded,
+                      color: AppColors.textHint,
+                      size: 18,
+                    ),
+                    onTap: () =>
+                        Navigator.of(context).push(SecurityScreen.route()),
+                  ),
+                  const Divider(),
+                  ListTile(
                     onTap: auth.isBusy ? null : _confirmSignOut,
                     title: const Text(
                       'Sign out',
@@ -105,81 +230,164 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               // ── Sync ──────────────────────────────────────────────────────
               _SectionHeader(label: 'Sync'),
-              _SettingsCard(
-                children: [
-                  SwitchListTile(
-                    value: _autoSync,
-                    onChanged: (v) => setState(() => _autoSync = v),
-                    title: const Text('Auto-sync'),
-                    subtitle: const Text('Sync clipboard automatically'),
-                    activeThumbColor: AppColors.accent,
-                  ),
-                  const Divider(),
-                  SwitchListTile(
-                    value: _wifiOnly,
-                    onChanged: (v) => setState(() => _wifiOnly = v),
-                    title: const Text('Wi-Fi only'),
-                    subtitle: const Text('Do not sync on mobile data'),
-                    activeThumbColor: AppColors.accent,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.l),
-
-              // ── Notifications ─────────────────────────────────────────────
-              _SectionHeader(label: 'Notifications'),
-              _SettingsCard(
-                children: [
-                  SwitchListTile(
-                    value: _notifications,
-                    onChanged: (v) => setState(() => _notifications = v),
-                    title: const Text('Sync alerts'),
-                    subtitle: const Text('Notify when clipboard is synced'),
-                    activeThumbColor: AppColors.accent,
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: AppSpacing.l),
-
-              // ── Privacy ───────────────────────────────────────────────────
-              _SectionHeader(label: 'Privacy'),
-              _SettingsCard(
-                children: [
-                  ListTile(
-                    title: const Text('Retention period'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: const [
-                        Text(
-                          '7 days',
-                          style: TextStyle(color: AppColors.textHint),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.chevron_right_rounded,
-                          color: AppColors.textHint,
-                          size: 18,
-                        ),
-                      ],
+              if (settings == null)
+                const _SettingsCard(
+                  children: [
+                    ListTile(
+                      title: Text('Loading your settings…'),
+                      trailing: SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     ),
-                  ),
-                  const Divider(),
-                  ListTile(
-                    onTap: () {},
-                    title: const Text(
-                      'Clear clipboard history',
-                      style: TextStyle(color: AppColors.error),
+                  ],
+                )
+              else ...[
+                _SettingsCard(
+                  children: [
+                    SwitchListTile(
+                      value: settings.autoSync,
+                      onChanged: settingsController.setAutoSync,
+                      title: const Text('Auto-sync'),
+                      subtitle: const Text(
+                        'Save what you copy when CopyOnce opens',
+                      ),
+                      activeThumbColor: AppColors.accent,
                     ),
-                    trailing: const Icon(
-                      Icons.delete_outline_rounded,
+                    const Divider(),
+                    SwitchListTile(
+                      value: settings.wifiOnly,
+                      onChanged: settings.autoSync
+                          ? settingsController.setWifiOnly
+                          : null,
+                      title: const Text('Wi-Fi only'),
+                      subtitle: const Text('Do not sync on mobile data'),
+                      activeThumbColor: AppColors.accent,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+
+                // ── What to capture ─────────────────────────────────────────
+                _SectionHeader(label: 'What to capture'),
+                _SettingsCard(
+                  children: [
+                    SwitchListTile(
+                      value: settings.captureText,
+                      onChanged: settingsController.setCaptureText,
+                      title: const Text('Text'),
+                      subtitle: const Text('Plain text you copy'),
+                      activeThumbColor: AppColors.accent,
+                    ),
+                    const Divider(),
+                    SwitchListTile(
+                      value: settings.captureLinks,
+                      onChanged: settingsController.setCaptureLinks,
+                      title: const Text('Links'),
+                      subtitle: const Text('Web addresses you copy'),
+                      activeThumbColor: AppColors.accent,
+                    ),
+                    const Divider(),
+                    const ListTile(
+                      title: Text(
+                        'Images',
+                        style: TextStyle(color: AppColors.textHint),
+                      ),
+                      subtitle: Text(
+                        'Not synced yet — screenshots and images are ignored',
+                      ),
+                      trailing: Icon(
+                        Icons.lock_outline_rounded,
+                        size: 16,
+                        color: AppColors.textHint,
+                      ),
+                      enabled: false,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+
+                // ── Notifications ───────────────────────────────────────────
+                _SectionHeader(label: 'Notifications'),
+                _SettingsCard(
+                  children: [
+                    SwitchListTile(
+                      value: settings.syncAlerts,
+                      onChanged: settingsController.setSyncAlerts,
+                      title: const Text('Sync alerts'),
+                      subtitle: const Text(
+                        'Tell me when something is saved or arrives',
+                      ),
+                      activeThumbColor: AppColors.accent,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: AppSpacing.l),
+
+                // ── Privacy ─────────────────────────────────────────────────
+                _SectionHeader(label: 'Privacy'),
+                _SettingsCard(
+                  children: [
+                    ListTile(
+                      onTap: () => _pickRetention(settings.retentionDays),
+                      title: const Text('Retention period'),
+                      subtitle: const Text(
+                        'How long CopyOnce keeps an item before deleting it. '
+                        'Shorter means less of your clipboard sitting on a '
+                        'server.',
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            settings.retentionSummary,
+                            style: const TextStyle(color: AppColors.textHint),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.chevron_right_rounded,
+                            color: AppColors.textHint,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      onTap: _confirmClearHistory,
+                      title: const Text(
+                        'Clear synced history',
+                        style: TextStyle(color: AppColors.error),
+                      ),
+                      subtitle: const Text(
+                        "Deletes stored items only — your phone's clipboard is "
+                        'left alone',
+                      ),
+                      trailing: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppColors.error,
+                        size: 18,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+
+              if (settingsController.errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.m),
+                  child: Text(
+                    settingsController.errorMessage!,
+                    style: const TextStyle(
                       color: AppColors.error,
-                      size: 18,
+                      fontSize: 13,
                     ),
                   ),
-                ],
-              ),
+                ),
 
               const SizedBox(height: AppSpacing.l),
 
