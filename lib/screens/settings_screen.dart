@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../controllers/auth_controller.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
@@ -15,11 +17,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _wifiOnly = false;
   bool _notifications = true;
 
+  Future<void> _confirmSignOut() async {
+    final auth = context.read<AuthController>();
+    final shouldSignOut = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+          'Your synced clipboard stays in your account. '
+          'You will need to sign in again on this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Sign Out'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldSignOut ?? false) await auth.signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     final contentWidth = MediaQuery.sizeOf(context).width > 600
         ? 560.0
         : double.infinity;
+    final auth = context.watch<AuthController>();
+    final user = auth.currentUser;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
@@ -29,6 +60,49 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.m),
             children: [
+              // ── Account ───────────────────────────────────────────────────
+              _SectionHeader(label: 'Account'),
+              _SettingsCard(
+                children: [
+                  ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: AppColors.accentSubtle,
+                      child: Icon(
+                        Icons.person_outline_rounded,
+                        color: AppColors.accent,
+                        size: 20,
+                      ),
+                    ),
+                    title: Text(
+                      user?.userMetadata?['display_name'] as String? ??
+                          'Signed in',
+                    ),
+                    subtitle: Text(user?.email ?? ''),
+                  ),
+                  const Divider(),
+                  ListTile(
+                    onTap: auth.isBusy ? null : _confirmSignOut,
+                    title: const Text(
+                      'Sign out',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    trailing: auth.isBusy
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(
+                            Icons.logout_rounded,
+                            color: AppColors.error,
+                            size: 18,
+                          ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: AppSpacing.l),
+
               // ── Sync ──────────────────────────────────────────────────────
               _SectionHeader(label: 'Sync'),
               _SettingsCard(

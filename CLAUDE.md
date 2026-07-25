@@ -11,14 +11,29 @@ CopyOnce is a cross-platform clipboard synchronization product.
 
 ## Current development commands
 
+Supabase credentials are injected at build time and are never committed. Copy
+`env/supabase.example.json` to `env/supabase.json` (gitignored) and fill it in,
+then pass it to every run/build command:
+
 - Install packages: `flutter pub get`
-- Run: `flutter run`
-- Run web: `flutter run -d chrome`
+- Run: `flutter run --dart-define-from-file=env/supabase.json`
+- Build Android debug APK:
+  `flutter build apk --debug --dart-define-from-file=env/supabase.json`
 - Format: `dart format .`
 - Analyze: `flutter analyze`
 - Test: `flutter test`
-- Build Android debug APK: `flutter build apk --debug`
-- Build web: `flutter build web`
+
+Web is not currently configured as a platform (`flutter create . --platforms web`
+would be needed first).
+
+## Backend
+
+- Supabase is the backend: Flutter talks to it directly via `supabase_flutter`.
+- Every table must enable Row Level Security with owner-scoped policies. The
+  publishable key ships in the client, so RLS is the only access control.
+- SQL changes are checked in under `supabase/migrations/` and then applied to
+  the project.
+- State management is `provider`; auth session state lives in `AuthController`.
 
 ## Architecture rules
 

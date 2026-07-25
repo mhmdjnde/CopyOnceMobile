@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
-import 'onboarding_screen.dart';
 
-/// Full-screen splash shown at app launch.
-/// Fades in the logo, then navigates to onboarding after a short delay.
+/// Full-screen splash shown at app launch while the session is restored.
+///
+/// Presentation only — [AuthGate] owns the timing and decides what comes next.
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -25,25 +25,12 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
     _controller.forward();
-
-    Future.delayed(const Duration(milliseconds: 2400), _navigate);
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  void _navigate() {
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder<void>(
-        pageBuilder: (_, animation, __) =>
-            FadeTransition(opacity: animation, child: const OnboardingScreen()),
-        transitionDuration: const Duration(milliseconds: 500),
-      ),
-    );
   }
 
   @override
