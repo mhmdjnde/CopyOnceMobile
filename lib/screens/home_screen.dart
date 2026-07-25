@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+import 'package:provider/provider.dart';
+
+import '../controllers/clipboard_controller.dart';
 import '../models/clipboard_item.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clipboard_card.dart';
 
-/// Main clipboard list screen.
-/// Supports search and type filtering over mock data.
+/// Main clipboard list screen: the account's synced items, searchable and
+/// filterable by type.
+///
+/// Reads everything from [ClipboardController]; it holds no clipboard state of
+/// its own beyond the search text and the selected filter.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, required this.onViewDevices});
 
@@ -30,19 +35,47 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  List<ClipboardItem> get _filtered {
+  List<ClipboardItem> _filtered(List<ClipboardItem> items) {
     final q = _query.trim().toLowerCase();
-    return MockData.clipboardItems.where((item) {
+    return items.where((item) {
       final matchesType = _typeFilter == null || item.type == _typeFilter;
       final matchesQuery = q.isEmpty || item.content.toLowerCase().contains(q);
       return matchesType && matchesQuery;
     }).toList();
   }
 
-  void _onCopy(ClipboardItem item) {
+  Future<void> _onCopy(ClipboardItem item) async {
+    await context.read<ClipboardController>().copyToDevice(item);
+    if (!mounted) return;
+    _toast('Copied to clipboard');
+  }
+
+  Future<void> _onDelete(ClipboardItem item) async {
+    final controller = context.read<ClipboardController>();
+    final deleted = await controller.deleteItem(item);
+    if (!mounted) return;
+    _toast(deleted ? 'Deleted' : controller.errorMessage ?? 'Could not delete');
+  }
+
+  /// Captures whatever is on the device clipboard right now.
+  ///
+  /// Exists because Android forbids reading the clipboard unless this app has
+  /// focus — so a deliberate tap is the one moment a read is guaranteed to work.
+  Future<void> _captureNow() async {
+    final controller = context.read<ClipboardController>();
+    final saved = await controller.captureFromDevice();
+    if (!mounted) return;
+    _toast(
+      saved != null
+          ? 'Saved to CopyOnce'
+          : controller.errorMessage ?? 'Nothing new on the clipboard',
+    );
+  }
+
+  void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Copied to clipboard'),
+        content: Text(message),
         backgroundColor: AppColors.primary,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
@@ -55,8 +88,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final items = _filtered;
-    final deviceCount = MockData.devices.length;
+    final controller = context.watch<ClipboardController>();
+    final all = controller.items;
+    final items = _filtered(all);
+    final deviceCount = controller.devices.length;
+
+    // An item that arrived from another device announces itself once, if the
+    // user has sync alerts on.
+    final alert = controller.pendingAlert;
+    if (alert != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        context.read<ClipboardController>().consumeAlert();
+        _toast('New item from ${alert.deviceName}');
+      });
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -108,6 +154,13 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _captureNow,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.white,
+        icon: const Icon(Icons.content_paste_go_rounded),
+        label: const Text('Save clipboard'),
+      ),
       body: Column(
         children: [
           // ── Search bar ───────────────────────────────────────────────────
@@ -140,14 +193,14 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 _FilterChip(
                   label: 'All',
-                  count: MockData.clipboardItems.length,
+                  count: all.length,
                   selected: _typeFilter == null,
                   onSelected: (_) => setState(() => _typeFilter = null),
                 ),
                 const SizedBox(width: AppSpacing.s),
                 _FilterChip(
                   label: 'Text',
-                  count: MockData.clipboardItems
+                  count: all
                       .where((i) => i.type == ClipboardItemType.text)
                       .length,
                   selected: _typeFilter == ClipboardItemType.text,
@@ -157,46 +210,55 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: AppSpacing.s),
                 _FilterChip(
                   label: 'Links',
-                  count: MockData.clipboardItems
+                  count: all
                       .where((i) => i.type == ClipboardItemType.link)
                       .length,
                   selected: _typeFilter == ClipboardItemType.link,
                   onSelected: (_) =>
                       setState(() => _typeFilter = ClipboardItemType.link),
                 ),
-                const SizedBox(width: AppSpacing.s),
-                _FilterChip(
-                  label: 'Images',
-                  count: MockData.clipboardItems
-                      .where((i) => i.type == ClipboardItemType.image)
-                      .length,
-                  selected: _typeFilter == ClipboardItemType.image,
-                  onSelected: (_) =>
-                      setState(() => _typeFilter = ClipboardItemType.image),
-                ),
               ],
             ),
           ),
 
-          // ── List / Empty state ────────────────────────────────────────────
+          // ── Loading / error / empty / list ────────────────────────────────
           Expanded(
-            child: items.isEmpty
-                ? const _EmptyState()
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.m,
-                      AppSpacing.s,
-                      AppSpacing.m,
-                      AppSpacing.xl,
-                    ),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: AppSpacing.s),
-                    itemBuilder: (_, index) => ClipboardCard(
+            child: switch (controller.status) {
+              ClipboardListStatus.initial || ClipboardListStatus.loading =>
+                const Center(child: CircularProgressIndicator()),
+              ClipboardListStatus.error => _ErrorState(
+                message:
+                    controller.errorMessage ?? 'Could not load your clipboard.',
+                onRetry: () => context.read<ClipboardController>().refresh(),
+              ),
+              ClipboardListStatus.ready when items.isEmpty => _EmptyState(
+                isFiltered: all.isNotEmpty,
+              ),
+              ClipboardListStatus.ready => RefreshIndicator(
+                onRefresh: () => context.read<ClipboardController>().refresh(),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.m,
+                    AppSpacing.s,
+                    AppSpacing.m,
+                    AppSpacing.xl,
+                  ),
+                  itemCount: items.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.s),
+                  itemBuilder: (_, index) => Dismissible(
+                    key: ValueKey(items[index].id),
+                    direction: DismissDirection.endToStart,
+                    background: const _DeleteBackground(),
+                    onDismissed: (_) => _onDelete(items[index]),
+                    child: ClipboardCard(
                       item: items[index],
                       onCopy: () => _onCopy(items[index]),
                     ),
                   ),
+                ),
+              ),
+            },
           ),
         ],
       ),
@@ -233,8 +295,29 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+/// Swipe-to-delete backdrop.
+class _DeleteBackground extends StatelessWidget {
+  const _DeleteBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.only(right: AppSpacing.l),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.l),
+      ),
+      child: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+    );
+  }
+}
+
+class _ErrorState extends StatelessWidget {
+  const _ErrorState({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -247,19 +330,19 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.surface,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
-                Icons.content_paste_off_rounded,
-                size: 32,
+                Icons.cloud_off_rounded,
+                size: 30,
                 color: AppColors.textHint,
               ),
             ),
             const SizedBox(height: AppSpacing.l),
             const Text(
-              'Nothing here',
+              'Cannot reach your clipboard',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -267,10 +350,71 @@ class _EmptyState extends StatelessWidget {
               ),
             ),
             const SizedBox(height: AppSpacing.s),
-            const Text(
-              'Copy something on any device\nand it will appear here.',
+            Text(
+              message,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            ElevatedButton(onPressed: onRetry, child: const Text('Try again')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.isFiltered});
+
+  /// True when items exist but the search or filter hides them all — a
+  /// different situation from having nothing synced at all.
+  final bool isFiltered;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                isFiltered
+                    ? Icons.search_off_rounded
+                    : Icons.content_paste_off_rounded,
+                size: 32,
+                color: AppColors.textHint,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            Text(
+              isFiltered ? 'No matches' : 'Nothing here yet',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.s),
+            Text(
+              isFiltered
+                  ? 'Try a different search or filter.'
+                  : 'Copy something, then tap Save clipboard —\nor copy on '
+                        'another device and it lands here.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppColors.textSecondary,
                 height: 1.5,

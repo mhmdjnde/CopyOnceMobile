@@ -20,6 +20,11 @@ abstract class AppColors {
   // Semantic
   static const Color divider = Color(0xFFE2DDD4);
   static const Color error = Color(0xFFB5432A);
+
+  /// Warm ochre for "not wrong yet, but not good either" — password strength,
+  /// sync warnings. Reads as caution against the beige ground without the alarm
+  /// of [error].
+  static const Color warning = Color(0xFFC0862E);
   static const Color link = Color(0xFF3D6B8E);
   static const Color white = Color(0xFFFFFFFF);
   static const Color success = Color(0xFF4A8A5A);

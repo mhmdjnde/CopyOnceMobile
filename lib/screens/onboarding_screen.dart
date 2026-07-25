@@ -1,20 +1,28 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../navigation/main_navigation.dart';
+import 'auth/sign_in_screen.dart';
+import 'auth/sign_up_screen.dart';
 
-/// Single-step onboarding that introduces the app's core value proposition.
+/// Single-step onboarding that introduces the app's core value proposition,
+/// then hands off to account creation.
 class OnboardingScreen extends StatelessWidget {
   const OnboardingScreen({super.key});
 
   void _getStarted(BuildContext context) {
-    Navigator.of(context).pushReplacement(
+    Navigator.of(context).push(
       PageRouteBuilder<void>(
-        pageBuilder: (_, animation, __) =>
-            FadeTransition(opacity: animation, child: const MainNavigation()),
+        pageBuilder: (_, animation, _) =>
+            FadeTransition(opacity: animation, child: const SignUpScreen()),
         transitionDuration: const Duration(milliseconds: 400),
       ),
     );
+  }
+
+  void _signIn(BuildContext context) {
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const SignInScreen()));
   }
 
   @override
@@ -102,6 +110,14 @@ class OnboardingScreen extends StatelessWidget {
                       onPressed: () => _getStarted(context),
                       child: const Text('Get Started'),
                     ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.s),
+
+                  // Secondary path for returning users
+                  TextButton(
+                    onPressed: () => _signIn(context),
+                    child: const Text('I already have an account'),
                   ),
 
                   const SizedBox(height: AppSpacing.l),

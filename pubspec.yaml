@@ -12,6 +12,20 @@ dependencies:
     sdk: flutter
 
   cupertino_icons: ^1.0.8
+  supabase_flutter: ^2.16.0
+  provider: ^6.1.5+1
+  flutter_secure_storage: ^10.3.1
+
+  # Draws the authenticator QR from the enrollment URI, so the secret is
+  # rendered on-device and never fetched from a remote image service.
+  qr_flutter: ^4.1.0
+
+  # Hashes clipboard content for the duplicate check. Declared explicitly rather
+  # than leaned on as a transitive dependency of supabase_flutter.
+  crypto: ^3.0.6
+
+  # Tells Wi-Fi from mobile data, for the "Wi-Fi only" setting.
+  connectivity_plus: ^7.0.0
 
 dev_dependencies:
   flutter_test:

@@ -1,17 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../controllers/clipboard_controller.dart';
 import '../data/mock_data.dart';
 import '../models/clipboard_item.dart';
 import '../models/device_info.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// Shows connected devices and their sync status.
-class DevicesScreen extends StatelessWidget {
+/// Shows the devices signed in to this account and when each was last seen.
+class DevicesScreen extends StatefulWidget {
   const DevicesScreen({super.key});
 
   @override
+  State<DevicesScreen> createState() => _DevicesScreenState();
+}
+
+class _DevicesScreenState extends State<DevicesScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<ClipboardController>().loadDevices();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final devices = MockData.devices;
+    final devices = context.watch<ClipboardController>().devices;
     final contentWidth = MediaQuery.sizeOf(context).width > 600
         ? 560.0
         : double.infinity;
