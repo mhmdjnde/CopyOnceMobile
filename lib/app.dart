@@ -25,8 +25,15 @@ class CopyOnceApp extends StatelessWidget {
       );
     }
 
-    return ChangeNotifierProvider(
-      create: (_) => AuthController(AuthRepository()),
+    // The repository is provided rather than constructed inline so the security
+    // screens can build their own controller against the same instance.
+    return MultiProvider(
+      providers: [
+        Provider<AuthRepository>(create: (_) => AuthRepository()),
+        ChangeNotifierProvider(
+          create: (context) => AuthController(context.read<AuthRepository>()),
+        ),
+      ],
       child: MaterialApp(
         title: 'CopyOnce',
         debugShowCheckedModeBanner: false,

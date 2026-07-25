@@ -30,18 +30,41 @@ void main() {
   });
 
   group('Validators.password', () {
-    test('accepts a password at the minimum length', () {
-      final password = 'a' * Validators.minPasswordLength;
-      expect(Validators.password(password), isNull);
+    test('delegates to the policy and accepts a conforming password', () {
+      expect(Validators.password('Str0ngPassphrase'), isNull);
     });
 
-    test('rejects a password one character short', () {
-      final password = 'a' * (Validators.minPasswordLength - 1);
-      expect(Validators.password(password), isNotNull);
+    test('rejects a password that only meets the length rule', () {
+      expect(
+        Validators.password('a' * Validators.minPasswordLength),
+        isNotNull,
+      );
     });
 
     test('rejects empty input', () {
       expect(Validators.password(''), isNotNull);
+    });
+
+    test('rejects a password that restates the email', () {
+      expect(
+        Validators.password('Sunbeam1234', email: 'sunbeam1234@example.com'),
+        isNotNull,
+      );
+    });
+  });
+
+  group('Validators.authenticatorCode', () {
+    test('accepts six digits', () {
+      expect(Validators.authenticatorCode('123456'), isNull);
+    });
+
+    test('rejects the wrong length', () {
+      expect(Validators.authenticatorCode('12345'), isNotNull);
+      expect(Validators.authenticatorCode('1234567'), isNotNull);
+    });
+
+    test('rejects non-digits', () {
+      expect(Validators.authenticatorCode('12345a'), isNotNull);
     });
   });
 
@@ -69,6 +92,33 @@ void main() {
 
     test('rejects empty input', () {
       expect(Validators.confirmPassword('', 'secret123'), isNotNull);
+    });
+  });
+
+  group('Validators.verificationCode', () {
+    // Derived so the tests follow the configured length instead of pinning it.
+    final code = '1' * Validators.verificationCodeLength;
+
+    test('accepts a full-length code', () {
+      expect(Validators.verificationCode(code), isNull);
+    });
+
+    test('accepts a code with surrounding whitespace', () {
+      expect(Validators.verificationCode(' $code '), isNull);
+    });
+
+    test('rejects empty input', () {
+      expect(Validators.verificationCode(''), isNotNull);
+      expect(Validators.verificationCode(null), isNotNull);
+    });
+
+    test('rejects the wrong length', () {
+      expect(Validators.verificationCode(code.substring(1)), isNotNull);
+      expect(Validators.verificationCode('${code}1'), isNotNull);
+    });
+
+    test('rejects non-digits', () {
+      expect(Validators.verificationCode('${code.substring(1)}a'), isNotNull);
     });
   });
 

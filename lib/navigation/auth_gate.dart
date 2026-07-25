@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/auth_controller.dart';
+import '../screens/auth/mfa_challenge_screen.dart';
 import '../screens/onboarding_screen.dart';
 import '../screens/splash_screen.dart';
 import 'main_navigation.dart';
@@ -70,6 +71,9 @@ class _AuthGateState extends State<AuthGate> {
 
     return switch (status) {
       AuthStatus.authenticated => const MainNavigation(),
+      // Deciding this here rather than inside sign-in means no pushed route or
+      // restored session can slip past the second factor.
+      AuthStatus.awaitingSecondFactor => const MfaChallengeScreen(),
       _ => const OnboardingScreen(),
     };
   }

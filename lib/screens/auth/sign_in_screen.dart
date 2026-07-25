@@ -2,16 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../controllers/auth_controller.dart';
+import '../../repositories/auth_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/validators.dart';
 import '../../widgets/auth_scaffold.dart';
 import 'forgot_password_screen.dart';
 import 'sign_up_screen.dart';
+import 'verify_code_screen.dart';
 
 /// Email + password sign-in.
 ///
 /// On success the [AuthController] emits an authenticated state and the
 /// [AuthGate] swaps in the main app — this screen does not navigate itself.
+///
+/// The one exception is an account that signed up but never entered its code:
+/// that gets a fresh code and the [VerifyCodeScreen], so the flow can be
+/// finished instead of dead-ending on an error.
 class SignInScreen extends StatefulWidget {
   const SignInScreen({super.key});
 
@@ -36,9 +42,25 @@ class _SignInScreenState extends State<SignInScreen> {
     FocusScope.of(context).unfocus();
     if (!_formKey.currentState!.validate()) return;
 
-    await context.read<AuthController>().signIn(
+    final auth = context.read<AuthController>();
+    final signedIn = await auth.signIn(
       email: _emailController.text,
       password: _passwordController.text,
+    );
+
+    // Success is handled by the gate; other failures just show their banner.
+    if (!mounted ||
+        signedIn != null ||
+        auth.failureReason != AuthFailureReason.unconfirmedEmail) {
+      return;
+    }
+
+    final email = _emailController.text.trim();
+    final sent = await auth.resendSignUpCode(email: email);
+    if (!mounted || sent == null) return;
+
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => VerifyCodeScreen(email: email)),
     );
   }
 

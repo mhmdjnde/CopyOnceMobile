@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 
 /// Shared chrome for the auth screens: logo, title, subtitle, and a
 /// width-constrained column that stays centred on wide desktop layouts.
@@ -218,6 +220,74 @@ class AuthFooterPrompt extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Single field for a numeric code: digits only, widely spaced, and large
+/// enough to check at a glance.
+///
+/// Shared by the emailed sign-up code and the authenticator code, whose lengths
+/// differ — [length] decides the cap, the placeholder, and when [onCompleted]
+/// fires, so the caller can submit without the user reaching for the button.
+/// Also offers the one-time-code autofill hint so the platform can fill it.
+class VerificationCodeField extends StatelessWidget {
+  const VerificationCodeField({
+    super.key,
+    required this.controller,
+    required this.enabled,
+    required this.onCompleted,
+    this.length,
+    this.validator,
+  });
+
+  final TextEditingController controller;
+  final bool enabled;
+  final ValueChanged<String> onCompleted;
+
+  /// Defaults to the emailed sign-up code's length.
+  final int? length;
+
+  /// Defaults to validating against the emailed sign-up code's rules.
+  final String? Function(String?)? validator;
+
+  int get _length => length ?? Validators.verificationCodeLength;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      enabled: enabled,
+      autofocus: true,
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.done,
+      textAlign: TextAlign.center,
+      maxLength: _length,
+      autofillHints: const [AutofillHints.oneTimeCode],
+      validator: validator ?? Validators.verificationCode,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      // Tracking is tight enough that the longest allowed code still fits a
+      // narrow phone without the field scrolling sideways.
+      style: const TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 6,
+        color: AppColors.textPrimary,
+      ),
+      decoration: InputDecoration(
+        hintText: '0' * _length,
+        counterText: '',
+        hintStyle: const TextStyle(
+          fontSize: 26,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 6,
+          color: AppColors.textHint,
+        ),
+      ),
+      onChanged: (value) {
+        if (value.length == _length) onCompleted(value);
+      },
+      onFieldSubmitted: onCompleted,
     );
   }
 }

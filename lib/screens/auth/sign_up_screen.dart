@@ -5,14 +5,16 @@ import '../../controllers/auth_controller.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/validators.dart';
 import '../../widgets/auth_scaffold.dart';
-import 'check_email_screen.dart';
+import '../../widgets/password_strength_field.dart';
 import 'sign_in_screen.dart';
+import 'verify_code_screen.dart';
 
 /// Account creation with email + password.
 ///
-/// If the Supabase project requires email confirmation, sign-up returns no
-/// session and this screen pushes [CheckEmailScreen]. Otherwise the
-/// [AuthController] flips to authenticated and the gate swaps in the app.
+/// Sign-up returns no session while the project requires email confirmation, so
+/// this screen pushes [VerifyCodeScreen] to collect the emailed code. If a
+/// session does come back, the [AuthController] flips to authenticated and the
+/// gate swaps in the app.
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
@@ -26,7 +28,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmController = TextEditingController();
-  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -48,11 +49,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
 
     // null means the attempt failed; the error banner already shows why.
+    // true means a session was issued and the gate is already switching.
     if (!mounted || signedIn == null || signedIn) return;
 
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => CheckEmailScreen(email: _emailController.text.trim()),
+        builder: (_) => VerifyCodeScreen(email: _emailController.text.trim()),
       ),
     );
   }
@@ -105,21 +107,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 const SizedBox(height: AppSpacing.m),
 
-                AuthTextField(
+                PasswordStrengthField(
                   controller: _passwordController,
-                  label: 'Password',
-                  hintText:
-                      'At least ${Validators.minPasswordLength} characters',
-                  obscureText: _obscurePassword,
-                  autofillHints: const [AutofillHints.newPassword],
-                  prefixIcon: Icons.lock_outline_rounded,
-                  validator: Validators.password,
+                  email: _emailController.text,
                   enabled: !auth.isBusy,
-                  suffixIcon: PasswordVisibilityToggle(
-                    isObscured: _obscurePassword,
-                    onToggle: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                  ),
                 ),
                 const SizedBox(height: AppSpacing.m),
 
@@ -127,7 +118,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   controller: _confirmController,
                   label: 'Confirm password',
                   hintText: 'Re-enter your password',
-                  obscureText: _obscurePassword,
+                  obscureText: true,
                   textInputAction: TextInputAction.done,
                   prefixIcon: Icons.lock_outline_rounded,
                   enabled: !auth.isBusy,

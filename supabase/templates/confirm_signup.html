@@ -1,0 +1,123 @@
+<!--
+  CopyOnce — "Confirm sign up" email.
+
+  Paste into Supabase → Authentication → Emails → Confirm sign up → Body
+  (Source tab). Requires custom SMTP; the built-in email service ignores
+  custom templates.
+
+  Supabase reuses this template for resends of type `signup`, so the
+  sign-up flow and the "you never verified" sign-in flow both send this.
+
+  The 6-digit code is the only credential here. No confirmation link is
+  included on purpose: a code-only email means a stolen inbox preview is not
+  a one-click account takeover.
+
+  Keep template variables out of this comment — Supabase substitutes them
+  everywhere in the body, comments included.
+
+  Built with table layout and inline styles because email clients strip
+  <style> blocks, flexbox, and grid. Colours mirror lib/theme/app_colors.dart.
+-->
+<div style="display:none;max-height:0;overflow:hidden;opacity:0">
+  Your CopyOnce verification code — expires in 1 hour.
+</div>
+
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+       style="background-color:#F6F4EF;margin:0;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+  <tr>
+    <td align="center">
+
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="480"
+             style="max-width:480px;width:100%;background-color:#FFFFFF;border:1px solid #E2DDD4;border-radius:16px;overflow:hidden">
+
+        <!-- Sage rule, the app's accent -->
+        <tr>
+          <td style="height:4px;background-color:#7B9E7B;line-height:4px;font-size:0">&nbsp;</td>
+        </tr>
+
+        <!-- Wordmark -->
+        <tr>
+          <td style="padding:28px 32px 0 32px">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+              <tr>
+                <td align="left"
+                    style="font-size:19px;font-weight:700;color:#2B392B;letter-spacing:-0.3px">
+                  CopyOnce
+                </td>
+                <td align="right"
+                    style="font-size:11px;font-weight:600;color:#5A6E5A;letter-spacing:0.6px;text-transform:uppercase">
+                  Verification
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Heading + copy -->
+        <tr>
+          <td style="padding:24px 32px 0 32px">
+            <h1 style="margin:0;font-size:25px;font-weight:700;color:#1C2B1C;letter-spacing:-0.5px;line-height:1.25">
+              Your verification code
+            </h1>
+            <p style="margin:12px 0 0 0;font-size:15px;color:#5A6E5A;line-height:1.5">
+              Enter this code in the app to finish setting up your account and
+              start syncing your clipboard across devices.
+            </p>
+          </td>
+        </tr>
+
+        <!-- The code -->
+        <tr>
+          <td style="padding:24px 32px 0 32px">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+                   style="background-color:#EBE6DA;border:1px dashed #7B9E7B;border-radius:12px">
+              <tr>
+                <td align="center" style="padding:22px 12px">
+                  <div style="font-size:34px;font-weight:700;color:#2B392B;letter-spacing:10px;line-height:1.1">
+                    {{ .Token }}
+                  </div>
+                  <div style="margin-top:10px;font-size:12px;color:#98A898;letter-spacing:0.3px">
+                    Expires in 1 hour · single use
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Reassurance -->
+        <tr>
+          <td style="padding:22px 32px 0 32px">
+            <p style="margin:0;font-size:14px;color:#5A6E5A;line-height:1.5">
+              CopyOnce will never ask you for this code by email, chat, or phone.
+              Type it into the app only.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 32px 0 32px">
+            <div style="height:1px;background-color:#E2DDD4;line-height:1px;font-size:0">&nbsp;</div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:18px 32px 28px 32px">
+            <p style="margin:0;font-size:12px;color:#98A898;line-height:1.6">
+              You received this because someone signed up for CopyOnce with this
+              email address. If that wasn't you, ignore this message — the
+              account stays inactive until the code is used, and nothing was
+              synced.
+            </p>
+          </td>
+        </tr>
+      </table>
+
+      <p style="margin:20px 0 0 0;font-size:11px;color:#98A898;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+        CopyOnce · Your clipboard, everywhere
+      </p>
+
+    </td>
+  </tr>
+</table>
