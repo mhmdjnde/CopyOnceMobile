@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/*
+ * CopyOnce web theme.
+ *
+ * The palette is ported verbatim from lib/theme/app_colors.dart so the site and
+ * the app read as one product. If a colour changes there, change it here — those
+ * two files are the design system, and there is no third place to look.
+ */
+@theme {
+  --color-brand: #2b392b;
+  --color-accent: #7b9e7b;
+
+  --color-canvas: #f6f4ef;
+  --color-surface: #ebe6da;
+  --color-card: #ffffff;
+
+  --color-ink: #1c2b1c;
+  --color-ink-soft: #5a6e5a;
+  --color-ink-faint: #98a898;
+
+  --color-divider: #e2ddd4;
+  --color-danger: #b5432a;
+  --color-warning: #c0862e;
+  --color-link: #3d6b8e;
+  --color-success: #4a8a5a;
+
+  /* Mirrors AppRadius in lib/theme/app_theme.dart. */
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 16px;
+  --radius-xl: 24px;
+}
+
+/*
+ * Dark mode is web-only — the Flutter app ships light only. Rather than invent a
+ * second palette, this darkens the grounds and lifts the ink while keeping the
+ * same sage hues, so the two clients still look related.
+ *
+ * These override the custom properties Tailwind emits from @theme above, so
+ * every `bg-canvas` / `text-ink` utility follows without a `dark:` variant.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-canvas: #141814;
+    --color-surface: #1f251f;
+    --color-card: #1a201a;
+    --color-ink: #e8ece8;
+    --color-ink-soft: #a3b3a3;
+    --color-ink-faint: #6d7d6d;
+    --color-divider: #2c342c;
+  }
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus: this app is heavily keyboard-driven, and the paste
+   shortcut means people will be on the keyboard already. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

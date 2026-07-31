@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../models/clipboard_item.dart';
@@ -18,9 +19,13 @@ class DeviceIdentity {
 
   static const _installIdKey = 'copyonce_install_id';
 
+  /// Host side lives in MainActivity.kt.
+  static const _channel = MethodChannel('copyonce/device');
+
   final FlutterSecureStorage _storage;
 
   String? _cachedInstallId;
+  String? _cachedDeviceName;
 
   /// Stable id for this install, created on first use.
   Future<String> installId() async {
@@ -39,16 +44,41 @@ class DeviceIdentity {
     return generated;
   }
 
-  /// Name shown next to synced items. Falls back to the platform when the OS
-  /// gives us nothing useful.
-  String get deviceName {
+  /// Name shown next to synced items — the one the owner recognises.
+  ///
+  /// Android needs the platform channel: `Platform.localHostname` returns
+  /// "localhost" there, which is why every device used to be labelled
+  /// "Android device". Desktops report a real hostname, so they use that.
+  Future<String> deviceName() async {
+    final cached = _cachedDeviceName;
+    if (cached != null) return cached;
+
+    final resolved = await _resolveDeviceName();
+    _cachedDeviceName = resolved;
+    return resolved;
+  }
+
+  Future<String> _resolveDeviceName() async {
     if (kIsWeb) return 'Web browser';
+
+    if (platform == DevicePlatform.android) {
+      try {
+        final name = await _channel.invokeMethod<String>('getDeviceName');
+        if (name != null && name.trim().isNotEmpty) return name.trim();
+      } on PlatformException {
+        // Fall through to the generic label rather than failing a sync.
+      } on MissingPluginException {
+        // Older build of the host app without the channel.
+      }
+    }
+
     try {
       final host = Platform.localHostname;
       if (host.isNotEmpty && host != 'localhost') return host;
     } on Object {
       // Some platforms deny hostname lookups; the fallback below is fine.
     }
+
     return switch (platform) {
       DevicePlatform.android => 'Android device',
       DevicePlatform.ios => 'iPhone',

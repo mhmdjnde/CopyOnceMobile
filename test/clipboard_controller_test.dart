@@ -8,11 +8,13 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'fakes/fake_clipboard_repository.dart';
 import 'fakes/fake_connectivity.dart';
+import 'fakes/fake_media_repository.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   late FakeClipboardRepository repository;
+  late FakeMediaRepository media;
   late FakeSettingsRepository settingsRepository;
   late SettingsController settings;
   late ClipboardController controller;
@@ -42,9 +44,11 @@ void main() {
     );
     await settings.load();
 
+    media = FakeMediaRepository();
     controller = ClipboardController(
       repository,
       settings,
+      media,
       identity: FakeDeviceIdentity(),
     );
   });
@@ -159,6 +163,7 @@ void main() {
       final mobileController = ClipboardController(
         repository,
         offWifi,
+        media,
         identity: FakeDeviceIdentity(),
       );
       addTearDown(mobileController.dispose);

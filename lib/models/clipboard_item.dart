@@ -2,8 +2,6 @@
 enum DevicePlatform { ios, android, macos, windows, linux }
 
 /// The content type of a clipboard item.
-///
-/// [image] exists in the schema but nothing captures it yet.
 enum ClipboardItemType { text, link, image }
 
 /// A single clipboard entry synced from a device.
@@ -16,6 +14,11 @@ class ClipboardItem {
     required this.devicePlatform,
     required this.timestamp,
     this.isPinned = false,
+    this.storagePath,
+    this.thumbPath,
+    this.byteSize,
+    this.mimeType,
+    this.expiresAt,
   });
 
   /// Builds an item from a `clipboard_items` row.
@@ -33,6 +36,13 @@ class ClipboardItem {
           DateTime.tryParse(row['created_at'] as String? ?? '')?.toLocal() ??
           DateTime.now(),
       isPinned: row['is_pinned'] as bool? ?? false,
+      storagePath: row['storage_path'] as String?,
+      thumbPath: row['thumb_path'] as String?,
+      byteSize: (row['byte_size'] as num?)?.toInt(),
+      mimeType: row['mime_type'] as String?,
+      expiresAt: DateTime.tryParse(
+        row['expires_at'] as String? ?? '',
+      )?.toLocal(),
     );
   }
 
@@ -46,6 +56,45 @@ class ClipboardItem {
   final DevicePlatform devicePlatform;
   final DateTime timestamp;
   final bool isPinned;
+
+  // ── Image payload ──────────────────────────────────────────────────────────
+  // Null on text and link items. The bytes live in Supabase Storage; these are
+  // pointers to them, never the image itself.
+
+  /// Full-resolution original, exactly as it was picked.
+  final String? storagePath;
+
+  /// Small re-encoded copy, for the list.
+  final String? thumbPath;
+
+  final int? byteSize;
+  final String? mimeType;
+
+  /// When the relay gives up on this image. Collapses to the past the moment
+  /// every device has fetched it, so it is not simply upload time plus 24h.
+  final DateTime? expiresAt;
+
+  bool get isImage => type == ClipboardItemType.image;
+
+  /// How long until this image is reaped, or null when it is not an image.
+  ///
+  /// Clamped at zero: an expired-but-not-yet-swept image reads as "gone" rather
+  /// than showing a negative countdown.
+  Duration? get timeLeft {
+    final expiry = expiresAt;
+    if (expiry == null) return null;
+    final remaining = expiry.difference(DateTime.now());
+    return remaining.isNegative ? Duration.zero : remaining;
+  }
+
+  /// Human-readable size, for the image card.
+  String get readableSize {
+    final bytes = byteSize;
+    if (bytes == null) return '';
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).round()} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
 
   static ClipboardItemType _typeFrom(String? value) {
     return switch (value) {

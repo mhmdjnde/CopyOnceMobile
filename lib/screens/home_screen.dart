@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/clipboard_controller.dart';
 import '../models/clipboard_item.dart';
+import '../services/media_picker.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/clipboard_card.dart';
@@ -13,10 +14,18 @@ import '../widgets/clipboard_card.dart';
 /// Reads everything from [ClipboardController]; it holds no clipboard state of
 /// its own beyond the search text and the selected filter.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key, required this.onViewDevices});
+  const HomeScreen({
+    super.key,
+    required this.onViewDevices,
+    this.picker = const MediaPicker(),
+  });
 
   /// Switches the nav shell to the Devices tab.
   final VoidCallback onViewDevices;
+
+  /// Injectable so a widget test can supply a stand-in — the real picker opens
+  /// system UI that a test cannot dismiss.
+  final MediaPicker picker;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -69,6 +78,26 @@ class _HomeScreenState extends State<HomeScreen> {
       saved != null
           ? 'Saved to CopyOnce'
           : controller.errorMessage ?? 'Nothing new on the clipboard',
+    );
+  }
+
+  /// Picks an image and relays it to the account's other devices.
+  Future<void> _uploadImage() async {
+    final controller = context.read<ClipboardController>();
+
+    final picked = await widget.picker.pickFromGallery();
+    if (picked == null) return; // Backed out of the picker.
+
+    final saved = await controller.uploadImage(
+      bytes: picked.bytes,
+      filename: picked.filename,
+    );
+
+    if (!mounted) return;
+    _toast(
+      saved != null
+          ? 'Sent to your devices'
+          : controller.errorMessage ?? 'Could not send that image',
     );
   }
 
@@ -154,13 +183,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _captureNow,
-        backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.white,
-        icon: const Icon(Icons.content_paste_go_rounded),
-        label: const Text('Save clipboard'),
-      ),
+      // The action follows the filter: on Images the useful thing to do is add
+      // one, everywhere else it is to capture what is on the clipboard.
+      floatingActionButton: _typeFilter == ClipboardItemType.image
+          ? FloatingActionButton.extended(
+              onPressed: controller.isUploading ? null : _uploadImage,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+              icon: controller.isUploading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.white,
+                      ),
+                    )
+                  : const Icon(Icons.add_photo_alternate_outlined),
+              label: Text(controller.isUploading ? 'Sending…' : 'Add image'),
+            )
+          : FloatingActionButton.extended(
+              onPressed: _captureNow,
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.white,
+              icon: const Icon(Icons.content_paste_go_rounded),
+              label: const Text('Save clipboard'),
+            ),
       body: Column(
         children: [
           // ── Search bar ───────────────────────────────────────────────────
@@ -217,6 +265,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   onSelected: (_) =>
                       setState(() => _typeFilter = ClipboardItemType.link),
                 ),
+                const SizedBox(width: AppSpacing.s),
+                _FilterChip(
+                  label: 'Images',
+                  count: all
+                      .where((i) => i.type == ClipboardItemType.image)
+                      .length,
+                  selected: _typeFilter == ClipboardItemType.image,
+                  onSelected: (_) =>
+                      setState(() => _typeFilter = ClipboardItemType.image),
+                ),
               ],
             ),
           ),
@@ -233,6 +291,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               ClipboardListStatus.ready when items.isEmpty => _EmptyState(
                 isFiltered: all.isNotEmpty,
+                isImages: _typeFilter == ClipboardItemType.image,
+                onAddImage: _uploadImage,
               ),
               ClipboardListStatus.ready => RefreshIndicator(
                 onRefresh: () => context.read<ClipboardController>().refresh(),
@@ -369,14 +429,45 @@ class _ErrorState extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({required this.isFiltered});
+  const _EmptyState({
+    required this.isFiltered,
+    this.isImages = false,
+    this.onAddImage,
+  });
 
   /// True when items exist but the search or filter hides them all — a
   /// different situation from having nothing synced at all.
   final bool isFiltered;
 
+  /// True when the Images filter is on, which has its own empty state: images
+  /// are expected to be absent most of the time, because they leave as soon as
+  /// they have been delivered.
+  final bool isImages;
+
+  final Future<void> Function()? onAddImage;
+
   @override
   Widget build(BuildContext context) {
+    final (icon, title, body) = switch ((isImages, isFiltered)) {
+      (true, _) => (
+        Icons.add_photo_alternate_outlined,
+        'No images waiting',
+        'Send an image and it appears on your other devices.\nIt clears once '
+            'they have it, or after 24 hours.',
+      ),
+      (false, true) => (
+        Icons.search_off_rounded,
+        'No matches',
+        'Try a different search or filter.',
+      ),
+      (false, false) => (
+        Icons.content_paste_off_rounded,
+        'Nothing here yet',
+        'Copy something, then tap Save clipboard —\nor copy on another device '
+            'and it lands here.',
+      ),
+    };
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -390,17 +481,11 @@ class _EmptyState extends StatelessWidget {
                 color: AppColors.surface,
                 shape: BoxShape.circle,
               ),
-              child: Icon(
-                isFiltered
-                    ? Icons.search_off_rounded
-                    : Icons.content_paste_off_rounded,
-                size: 32,
-                color: AppColors.textHint,
-              ),
+              child: Icon(icon, size: 32, color: AppColors.textHint),
             ),
             const SizedBox(height: AppSpacing.l),
             Text(
-              isFiltered ? 'No matches' : 'Nothing here yet',
+              title,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -409,10 +494,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.s),
             Text(
-              isFiltered
-                  ? 'Try a different search or filter.'
-                  : 'Copy something, then tap Save clipboard —\nor copy on '
-                        'another device and it lands here.',
+              body,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 14,
@@ -420,6 +502,14 @@ class _EmptyState extends StatelessWidget {
                 height: 1.5,
               ),
             ),
+            if (isImages && onAddImage != null) ...[
+              const SizedBox(height: AppSpacing.l),
+              ElevatedButton.icon(
+                onPressed: onAddImage,
+                icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                label: const Text('Choose an image'),
+              ),
+            ],
           ],
         ),
       ),

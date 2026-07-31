@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import '../data/mock_data.dart';
 import '../models/clipboard_item.dart';
+import '../screens/media_viewer_screen.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'device_badge.dart';
+import 'media_thumbnail.dart';
+import 'scan_to_copy_sheet.dart';
 
 /// Card representing a single clipboard item.
-/// Shows type, content preview, source device, timestamp, and a copy action.
+///
+/// Shows type, content preview, source device, timestamp, a copy action, and a
+/// QR action for handing the item to someone who has neither the app nor an
+/// account.
 class ClipboardCard extends StatefulWidget {
   const ClipboardCard({super.key, required this.item, required this.onCopy});
 
@@ -29,6 +35,19 @@ class _ClipboardCardState extends State<ClipboardCard> {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) setState(() => _copied = false);
     });
+  }
+
+  /// Tapping an image opens it; tapping anything else copies it.
+  ///
+  /// There is nothing useful to put on the clipboard for an image — the stored
+  /// content is only its filename — so the tap does the thing the user came
+  /// for instead.
+  void _handleTap() {
+    if (widget.item.isImage) {
+      MediaViewerScreen.open(context, widget.item);
+    } else {
+      _handleCopy();
+    }
   }
 
   ({Color bg, Color fg, IconData icon, String label}) get _typeInfo =>
@@ -59,7 +78,7 @@ class _ClipboardCardState extends State<ClipboardCard> {
 
     return Card(
       child: InkWell(
-        onTap: _handleCopy,
+        onTap: _handleTap,
         borderRadius: BorderRadius.circular(AppRadius.l),
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.m),
@@ -109,26 +128,63 @@ class _ClipboardCardState extends State<ClipboardCard> {
                       ),
                     ),
                   ],
+                  if (widget.item.isImage) ...[
+                    const SizedBox(width: AppSpacing.s),
+                    MediaExpiryChip(item: widget.item),
+                  ],
                   const Spacer(),
-                  // Copy button
+                  // Share by QR: lets someone with no account and no app take
+                  // this item off the screen with their camera.
+                  //
+                  // Not offered for images — a QR carries a few hundred bytes,
+                  // and the only thing that would fit is the filename.
+                  if (!widget.item.isImage)
+                    Semantics(
+                      button: true,
+                      label: 'Show QR code to share',
+                      child: GestureDetector(
+                        onTap: () => ScanToCopySheet.show(context, widget.item),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          margin: const EdgeInsets.only(right: AppSpacing.s),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(AppRadius.s),
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_rounded,
+                            size: 16,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  // Open, or copy. An image has nothing to put on the clipboard.
                   Semantics(
                     button: true,
-                    label: _copied ? 'Copied' : 'Copy to clipboard',
+                    label: widget.item.isImage
+                        ? 'Open image full screen'
+                        : (_copied ? 'Copied' : 'Copy to clipboard'),
                     child: GestureDetector(
-                      onTap: _handleCopy,
+                      onTap: _handleTap,
                       child: Container(
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: _copied
+                          color: _copied && !widget.item.isImage
                               ? AppColors.successSubtle
                               : AppColors.surface,
                           borderRadius: BorderRadius.circular(AppRadius.s),
                         ),
                         child: Icon(
-                          _copied ? Icons.check_rounded : Icons.copy_outlined,
+                          switch ((widget.item.isImage, _copied)) {
+                            (true, _) => Icons.open_in_full_rounded,
+                            (false, true) => Icons.check_rounded,
+                            (false, false) => Icons.copy_outlined,
+                          },
                           size: 16,
-                          color: _copied
+                          color: _copied && !widget.item.isImage
                               ? AppColors.success
                               : AppColors.textSecondary,
                         ),
@@ -195,7 +251,7 @@ class _ContentPreview extends StatelessWidget {
         ),
       ),
       ClipboardItemType.link => _LinkPreview(url: item.content),
-      ClipboardItemType.image => _ImagePreview(filename: item.content),
+      ClipboardItemType.image => _ImagePreview(item: item),
     };
   }
 }
@@ -239,38 +295,43 @@ class _LinkPreview extends StatelessWidget {
 }
 
 class _ImagePreview extends StatelessWidget {
-  const _ImagePreview({required this.filename});
+  const _ImagePreview({required this.item});
 
-  final String filename;
+  final ClipboardItem item;
 
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadius.m),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: const Icon(
-            Icons.image_outlined,
-            color: AppColors.textHint,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: AppSpacing.s),
+        MediaThumbnail(item: item, size: 56),
+        const SizedBox(width: AppSpacing.s + AppSpacing.xs),
         Expanded(
-          child: Text(
-            filename,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item.content,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (item.readableSize.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '${item.readableSize} · tap to open',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textHint,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
       ],

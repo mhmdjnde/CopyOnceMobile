@@ -26,7 +26,7 @@ class FakeDeviceIdentity implements DeviceIdentity {
   Future<String> installId() async => 'test-install-id';
 
   @override
-  String get deviceName => 'Test device';
+  Future<String> deviceName() async => 'Test device';
 
   @override
   DevicePlatform get platform => DevicePlatform.android;

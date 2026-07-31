@@ -7,6 +7,7 @@ import 'controllers/settings_controller.dart';
 import 'navigation/auth_gate.dart';
 import 'repositories/auth_repository.dart';
 import 'repositories/clipboard_repository.dart';
+import 'repositories/media_repository.dart';
 import 'repositories/settings_repository.dart';
 import 'screens/config_error_screen.dart';
 import 'theme/app_theme.dart';
@@ -35,6 +36,7 @@ class CopyOnceApp extends StatelessWidget {
       providers: [
         Provider<AuthRepository>(create: (_) => AuthRepository()),
         Provider<ClipboardRepository>(create: (_) => ClipboardRepository()),
+        Provider<MediaRepository>(create: (_) => MediaRepository()),
         Provider<SettingsRepository>(create: (_) => SettingsRepository()),
         ChangeNotifierProvider(
           create: (context) => AuthController(context.read<AuthRepository>()),
@@ -49,6 +51,7 @@ class CopyOnceApp extends StatelessWidget {
           create: (context) => ClipboardController(
             context.read<ClipboardRepository>(),
             context.read<SettingsController>(),
+            context.read<MediaRepository>(),
           ),
         ),
       ],

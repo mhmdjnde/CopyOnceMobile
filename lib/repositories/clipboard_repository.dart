@@ -159,20 +159,30 @@ class ClipboardRepository {
   // ── Devices ────────────────────────────────────────────────────────────────
 
   /// Records this install and refreshes its last-seen time.
-  Future<void> registerDevice({
+  ///
+  /// Returns the device row's id, which image delivery receipts are keyed on —
+  /// the install id is this device's name for itself, but the receipts table
+  /// references the row so that forgetting a device takes its receipts with it.
+  Future<String> registerDevice({
     required String installId,
     required String name,
     required DevicePlatform platform,
   }) {
     return _guard(() async {
       final userId = _requireUser();
-      await _client.from('devices').upsert({
-        'user_id': userId,
-        'install_id': installId,
-        'name': name,
-        'platform': platform.name,
-        'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-      }, onConflict: 'user_id,install_id');
+      final row = await _client
+          .from('devices')
+          .upsert({
+            'user_id': userId,
+            'install_id': installId,
+            'name': name,
+            'platform': platform.name,
+            'last_seen_at': DateTime.now().toUtc().toIso8601String(),
+          }, onConflict: 'user_id,install_id')
+          .select('id')
+          .single();
+
+      return row['id'] as String;
     });
   }
 

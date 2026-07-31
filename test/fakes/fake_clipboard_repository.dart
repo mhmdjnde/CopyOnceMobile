@@ -94,14 +94,19 @@ class FakeClipboardRepository implements ClipboardRepository {
     return pruneResult;
   }
 
+  /// Device row id handed back by [registerDevice], which delivery receipts
+  /// are keyed on.
+  String deviceRowId = 'device-row-1';
+
   @override
-  Future<void> registerDevice({
+  Future<String> registerDevice({
     required String installId,
     required String name,
     required DevicePlatform platform,
   }) async {
     calls.add('registerDevice');
     if (failure != null) throw failure!;
+    return deviceRowId;
   }
 
   @override

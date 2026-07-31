@@ -7,6 +7,7 @@ import '../models/clipboard_item.dart';
 import '../models/device_info.dart';
 import '../models/sync_settings.dart';
 import '../repositories/clipboard_repository.dart';
+import '../repositories/media_repository.dart';
 import '../services/device_identity.dart';
 import 'settings_controller.dart';
 
@@ -22,13 +23,22 @@ enum ClipboardListStatus { initial, loading, ready, error }
 class ClipboardController extends ChangeNotifier {
   ClipboardController(
     this._repository,
-    this._settings, {
+    this._settings,
+    this._media, {
     DeviceIdentity? identity,
   }) : _identity = identity ?? DeviceIdentity();
 
   final ClipboardRepository _repository;
   final SettingsController _settings;
+  final MediaRepository _media;
   final DeviceIdentity _identity;
+
+  /// This device's row id, learned at registration.
+  ///
+  /// Delivery receipts are keyed on it, so image relaying only works once
+  /// registration has succeeded. Null until then, which is why every receipt
+  /// path tolerates its absence rather than waiting on it.
+  String? _deviceRowId;
 
   StreamSubscription<List<ClipboardItem>>? _subscription;
 
@@ -67,6 +77,7 @@ class ClipboardController extends ChangeNotifier {
     try {
       // Retention first, so expired items never flash up before being removed.
       await _repository.pruneExpired();
+      await _reapExpiredMedia();
       _items = await _repository.fetchItems();
       _status = ClipboardListStatus.ready;
       notifyListeners();
@@ -140,6 +151,11 @@ class ClipboardController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Files before the row, the same order the reaper uses. The row is the
+      // only remaining pointer to the files, so it has to outlive them.
+      if (item.isImage) {
+        await _media.deleteFiles(item);
+      }
       await _repository.deleteItem(item.id);
       return true;
     } on ClipboardFailure catch (failure) {
@@ -179,13 +195,122 @@ class ClipboardController extends ChangeNotifier {
     }
   }
 
+  // ── Images ─────────────────────────────────────────────────────────────────
+  //
+  // An image is a relay, not a stored file: it exists until every device on the
+  // account has fetched the original, or 24 hours, whichever comes first.
+  // "Fetched" means the full-resolution bytes were downloaded — seeing a
+  // thumbnail in the list is not receipt of the image.
+
+  bool _isUploading = false;
+
+  /// True while an upload is in flight, so the UI can show progress and refuse
+  /// a second pick.
+  bool get isUploading => _isUploading;
+
+  /// Sends [bytes] to the account's other devices.
+  ///
+  /// Returns the stored item, or null when the upload failed — in which case
+  /// [errorMessage] explains why.
+  Future<ClipboardItem?> uploadImage({
+    required Uint8List bytes,
+    required String filename,
+  }) async {
+    if (_isUploading) return null;
+
+    _isUploading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final saved = await _media.upload(
+        bytes: bytes,
+        filename: filename,
+        deviceId: await _identity.installId(),
+        deviceName: await _identity.deviceName(),
+        devicePlatform: _identity.platform,
+      );
+
+      // This device is holding the original already — it is the one that sent
+      // it. Recording that now is what lets a one-device account reap straight
+      // away instead of waiting out the whole backstop.
+      await _recordDelivery(saved.id);
+
+      _items = [saved, ..._items];
+      return saved;
+    } on ClipboardFailure catch (failure) {
+      _errorMessage = failure.message;
+      return null;
+    } finally {
+      _isUploading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Thumbnail bytes for [item], or null if it cannot be fetched.
+  Future<Uint8List?> thumbnailFor(ClipboardItem item) async {
+    try {
+      return await _media.thumbnail(item);
+    } on ClipboardFailure {
+      // A card with a placeholder is a better outcome than an error banner
+      // over the whole list.
+      return null;
+    }
+  }
+
+  /// The full-resolution original — and the moment this device counts as
+  /// having received it.
+  ///
+  /// Recording the receipt here is what makes the relay work: once the last
+  /// device has pulled the original, the image has done its job and the
+  /// database collapses its expiry.
+  Future<Uint8List?> openOriginal(ClipboardItem item) async {
+    try {
+      final bytes = await _media.original(item);
+      await _recordDelivery(item.id);
+      return bytes;
+    } on ClipboardFailure catch (failure) {
+      _errorMessage = failure.message;
+      notifyListeners();
+      return null;
+    }
+  }
+
+  /// Notes that this device now holds [itemId].
+  ///
+  /// Silent on failure by design: a lost receipt only means the image waits for
+  /// the 24-hour backstop instead of going now, which is not worth putting in
+  /// front of the user.
+  Future<void> _recordDelivery(String itemId) async {
+    final deviceRowId = _deviceRowId;
+    if (deviceRowId == null) return;
+
+    try {
+      await _media.markDelivered(itemId: itemId, deviceRowId: deviceRowId);
+    } on ClipboardFailure {
+      // See above.
+    }
+  }
+
+  /// Clears this account's finished images on launch.
+  ///
+  /// The scheduled reaper does this for everyone; this covers the window where
+  /// a free-tier project has been paused and cron has not run.
+  Future<void> _reapExpiredMedia() async {
+    try {
+      await _media.reapExpired();
+    } on ClipboardFailure {
+      // Best effort — the scheduled reaper collects whatever this misses.
+    }
+  }
+
   Future<ClipboardItem?> _save(String content, {required bool isLink}) async {
     try {
       final saved = await _repository.addItem(
         content: content,
         type: isLink ? ClipboardItemType.link : ClipboardItemType.text,
         deviceId: await _identity.installId(),
-        deviceName: _identity.deviceName,
+        deviceName: await _identity.deviceName(),
         devicePlatform: _identity.platform,
       );
 
@@ -238,9 +363,9 @@ class ClipboardController extends ChangeNotifier {
 
   Future<void> _registerThisDevice() async {
     try {
-      await _repository.registerDevice(
+      _deviceRowId = await _repository.registerDevice(
         installId: await _identity.installId(),
-        name: _identity.deviceName,
+        name: await _identity.deviceName(),
         platform: _identity.platform,
       );
     } on ClipboardFailure {
