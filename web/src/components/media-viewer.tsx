@@ -5,6 +5,17 @@ import { useCopyOnce } from "@/lib/copyonce-provider";
 import { expiryLabel, readableSize } from "@/lib/clipboard";
 import type { ClipboardItem } from "@/lib/types";
 import { Button, Spinner } from "./ui";
+import { CloseIcon, DownloadIcon } from "./icons";
+
+/**
+ * The viewer's ground, fixed in both themes.
+ *
+ * Not a palette token: `ink` is dark on a light theme and light on a dark one,
+ * so a backdrop built from it inverts and the white text on top of it
+ * disappears. An image also reads truer against neutral dark, and one that sat
+ * on beige by day and black by night would look like two different photos.
+ */
+const VIEWER_BACKDROP = "rgba(14, 17, 14, 0.96)";
 
 /**
  * Full-resolution view of a relayed image, with a download.
@@ -13,7 +24,7 @@ import { Button, Spinner } from "./ui";
  * original is downloaded here, and once every device has pulled it the relay
  * lets it go. So the blob is held in state and the download button reuses it
  * rather than fetching again — otherwise saving could fail on an image the
- * user is looking at.
+ * user is still looking at.
  */
 export function MediaViewer({
   item,
@@ -70,7 +81,8 @@ export function MediaViewer({
       role="dialog"
       aria-modal="true"
       aria-label={item.content}
-      className="fixed inset-0 z-40 flex flex-col bg-ink/95"
+      className="fixed inset-0 z-40 flex flex-col"
+      style={{ backgroundColor: VIEWER_BACKDROP }}
       onClick={onClose}
     >
       <div
@@ -79,7 +91,7 @@ export function MediaViewer({
       >
         <p className="min-w-0 flex-1 truncate text-sm">{item.content}</p>
         {blob && (
-          <Button variant="secondary" onClick={download}>
+          <Button variant="secondary" icon={<DownloadIcon size={16} />} onClick={download}>
             Download
           </Button>
         )}
@@ -88,7 +100,7 @@ export function MediaViewer({
           aria-label="Close"
           className="flex size-9 items-center justify-center rounded-[--radius-m] text-white/80 hover:bg-white/10 hover:text-white"
         >
-          ✕
+          <CloseIcon size={18} />
         </button>
       </div>
 

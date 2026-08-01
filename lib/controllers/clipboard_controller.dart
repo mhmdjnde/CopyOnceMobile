@@ -83,6 +83,10 @@ class ClipboardController extends ChangeNotifier {
       notifyListeners();
 
       await _registerThisDevice();
+      // Loaded here, not only on the Devices screen: the home header shows a
+      // device count, and without this it reads "0 devices" next to items that
+      // plainly came from two.
+      await loadDevices();
       _listenForChanges();
     } on ClipboardFailure catch (failure) {
       _status = ClipboardListStatus.error;
