@@ -26,6 +26,10 @@ class CopyOnceApp extends StatelessWidget {
         title: 'CopyOnce',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        // Follows the phone's own light/dark setting, and switches with it
+        // while the app is open.
+        themeMode: ThemeMode.system,
         home: ConfigErrorScreen(message: configError!),
       );
     }
@@ -59,6 +63,10 @@ class CopyOnceApp extends StatelessWidget {
         title: 'CopyOnce',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        darkTheme: AppTheme.dark,
+        // Follows the phone's own light/dark setting, and switches with it
+        // while the app is open.
+        themeMode: ThemeMode.system,
         home: const AuthGate(),
       ),
     );

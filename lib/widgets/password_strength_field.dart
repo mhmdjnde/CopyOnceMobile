@@ -105,12 +105,14 @@ class _StrengthMeter extends StatelessWidget {
 
   static const _segments = 4;
 
-  Color get _color => switch (strength) {
-    PasswordStrength.empty => AppColors.divider,
-    PasswordStrength.weak => AppColors.error,
-    PasswordStrength.fair => AppColors.warning,
-    PasswordStrength.good => AppColors.accent,
-    PasswordStrength.strong => AppColors.success,
+  /// Takes a context rather than reading a static palette, so the meter follows
+  /// the active theme like everything else.
+  Color _color(BuildContext context) => switch (strength) {
+    PasswordStrength.empty => context.colors.divider,
+    PasswordStrength.weak => context.colors.error,
+    PasswordStrength.fair => context.colors.warning,
+    PasswordStrength.good => context.colors.accent,
+    PasswordStrength.strong => context.colors.success,
   };
 
   @override
@@ -127,7 +129,7 @@ class _StrengthMeter extends StatelessWidget {
               curve: Curves.easeOut,
               height: 4,
               decoration: BoxDecoration(
-                color: i < filled ? _color : AppColors.divider,
+                color: i < filled ? _color(context) : context.colors.divider,
                 borderRadius: BorderRadius.circular(AppRadius.s),
               ),
             ),
@@ -143,7 +145,7 @@ class _StrengthMeter extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: _color,
+              color: _color(context),
             ),
           ),
         ),
@@ -185,7 +187,7 @@ class _RequirementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = met ? AppColors.success : AppColors.textHint;
+    final color = met ? context.colors.success : context.colors.textHint;
 
     return Row(
       children: [
@@ -200,7 +202,9 @@ class _RequirementRow extends StatelessWidget {
             label,
             style: TextStyle(
               fontSize: 13,
-              color: met ? AppColors.textSecondary : AppColors.textHint,
+              color: met
+                  ? context.colors.textSecondary
+                  : context.colors.textHint,
               height: 1.4,
             ),
             // Announced as a checklist item so screen readers convey state.

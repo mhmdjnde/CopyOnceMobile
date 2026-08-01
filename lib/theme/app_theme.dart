@@ -21,48 +21,61 @@ abstract class AppRadius {
 }
 
 abstract class AppTheme {
-  static ThemeData get light {
-    const colorScheme = ColorScheme(
-      brightness: Brightness.light,
-      primary: AppColors.primary,
-      onPrimary: AppColors.white,
-      primaryContainer: Color(0xFFD0E4D0),
-      onPrimaryContainer: AppColors.primary,
-      secondary: AppColors.accent,
-      onSecondary: AppColors.white,
-      secondaryContainer: Color(0xFFD8EAD8),
-      onSecondaryContainer: AppColors.primary,
-      surface: AppColors.surface,
-      onSurface: AppColors.textPrimary,
-      error: AppColors.error,
-      onError: AppColors.white,
-      outline: AppColors.divider,
-      outlineVariant: AppColors.divider,
+  /// The light theme, used when the system asks for it.
+  static ThemeData get light => _build(AppPalette.light);
+
+  /// The dark theme. Same structure, same spacing, different palette — nothing
+  /// about the layout changes between them.
+  static ThemeData get dark => _build(AppPalette.dark);
+
+  /// Builds a theme from [c].
+  ///
+  /// Both themes come through here so a change to shape, spacing, or typography
+  /// cannot land in one and be forgotten in the other.
+  static ThemeData _build(AppPalette c) {
+    final colorScheme = ColorScheme(
+      brightness: c.brightness,
+      primary: c.primary,
+      onPrimary: c.onPrimary,
+      primaryContainer: c.accentSubtle,
+      onPrimaryContainer: c.textPrimary,
+      secondary: c.accent,
+      onSecondary: c.onPrimary,
+      secondaryContainer: c.accentSubtle,
+      onSecondaryContainer: c.textPrimary,
+      surface: c.surface,
+      onSurface: c.textPrimary,
+      error: c.error,
+      onError: c.onPrimary,
+      outline: c.divider,
+      outlineVariant: c.divider,
     );
 
     return ThemeData(
       useMaterial3: true,
+      extensions: [c],
+      brightness: c.brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: AppColors.background,
+      scaffoldBackgroundColor: c.background,
       // Cards
       cardTheme: CardThemeData(
-        color: AppColors.card,
+        color: c.card,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
-          side: const BorderSide(color: AppColors.divider),
+          side: BorderSide(color: c.divider),
         ),
         margin: EdgeInsets.zero,
       ),
       // AppBar
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: c.background,
         elevation: 0,
         scrolledUnderElevation: 0,
-        foregroundColor: AppColors.textPrimary,
+        foregroundColor: c.textPrimary,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
+          color: c.textPrimary,
           fontSize: 22,
           fontWeight: FontWeight.w700,
           letterSpacing: -0.3,
@@ -70,17 +83,17 @@ abstract class AppTheme {
       ),
       // Bottom NavigationBar (Material 3)
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: AppColors.card,
+        backgroundColor: c.card,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
         elevation: 0,
         height: 64,
-        indicatorColor: AppColors.accentSubtle,
+        indicatorColor: c.accentSubtle,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return TextStyle(
-            color: selected ? AppColors.primary : AppColors.textHint,
+            color: selected ? c.primary : c.textHint,
             fontSize: 11,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
           );
@@ -88,32 +101,29 @@ abstract class AppTheme {
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? AppColors.primary : AppColors.textHint,
+            color: selected ? c.primary : c.textHint,
             size: 22,
           );
         }),
       ),
       // NavigationRail (wide layout)
-      navigationRailTheme: const NavigationRailThemeData(
-        backgroundColor: AppColors.card,
-        selectedIconTheme: IconThemeData(color: AppColors.primary, size: 22),
-        unselectedIconTheme: IconThemeData(color: AppColors.textHint, size: 22),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: c.card,
+        selectedIconTheme: IconThemeData(color: c.primary, size: 22),
+        unselectedIconTheme: IconThemeData(color: c.textHint, size: 22),
         selectedLabelTextStyle: TextStyle(
-          color: AppColors.primary,
+          color: c.primary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelTextStyle: TextStyle(
-          color: AppColors.textHint,
-          fontSize: 12,
-        ),
-        indicatorColor: AppColors.accentSubtle,
+        unselectedLabelTextStyle: TextStyle(color: c.textHint, fontSize: 12),
+        indicatorColor: c.accentSubtle,
         useIndicator: true,
       ),
       // Inputs
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: c.surface,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
           borderSide: BorderSide.none,
@@ -124,27 +134,27 @@ abstract class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppRadius.l),
-          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+          borderSide: BorderSide(color: c.accent, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.m,
           vertical: AppSpacing.m,
         ),
-        hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 15),
-        prefixIconColor: AppColors.textHint,
+        hintStyle: TextStyle(color: c.textHint, fontSize: 15),
+        prefixIconColor: c.textHint,
       ),
       // Filter chips
       chipTheme: ChipThemeData(
-        backgroundColor: AppColors.surface,
-        selectedColor: AppColors.primary,
-        disabledColor: AppColors.surface,
-        labelStyle: const TextStyle(
-          color: AppColors.textSecondary,
+        backgroundColor: c.surface,
+        selectedColor: c.primary,
+        disabledColor: c.surface,
+        labelStyle: TextStyle(
+          color: c.textSecondary,
           fontSize: 13,
           fontWeight: FontWeight.w500,
         ),
-        secondaryLabelStyle: const TextStyle(
-          color: AppColors.white,
+        secondaryLabelStyle: TextStyle(
+          color: c.onPrimary,
           fontSize: 13,
           fontWeight: FontWeight.w600,
         ),
@@ -160,8 +170,8 @@ abstract class AppTheme {
       // Buttons
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
+          backgroundColor: c.primary,
+          foregroundColor: c.onPrimary,
           elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.xl,
@@ -178,14 +188,10 @@ abstract class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: AppColors.primary),
+        style: TextButton.styleFrom(foregroundColor: c.primary),
       ),
       // Dividers
-      dividerTheme: const DividerThemeData(
-        color: AppColors.divider,
-        thickness: 1,
-        space: 0,
-      ),
+      dividerTheme: DividerThemeData(color: c.divider, thickness: 1, space: 0),
       // ListTile defaults
       listTileTheme: const ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(

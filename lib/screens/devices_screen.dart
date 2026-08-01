@@ -41,7 +41,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
             padding: const EdgeInsets.all(AppSpacing.m),
             children: [
               // Section header
-              const Padding(
+              Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: AppSpacing.xs,
                   vertical: AppSpacing.s,
@@ -51,7 +51,7 @@ class _DevicesScreenState extends State<DevicesScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textHint,
+                    color: context.colors.textHint,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -73,8 +73,8 @@ class _DevicesScreenState extends State<DevicesScreen> {
                 icon: const Icon(Icons.add_rounded, size: 18),
                 label: const Text('Add a Device'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.divider),
+                  foregroundColor: context.colors.primary,
+                  side: BorderSide(color: context.colors.divider),
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.l),
@@ -120,16 +120,16 @@ class _DeviceCard extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: device.isCurrentDevice
-                    ? AppColors.accentSubtle
-                    : AppColors.surface,
+                    ? context.colors.accentSubtle
+                    : context.colors.surface,
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 _platformIcon,
                 size: 22,
                 color: device.isCurrentDevice
-                    ? AppColors.accent
-                    : AppColors.textSecondary,
+                    ? context.colors.accent
+                    : context.colors.textSecondary,
               ),
             ),
 
@@ -142,18 +142,18 @@ class _DeviceCard extends StatelessWidget {
                 children: [
                   Text(
                     device.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     _lastSeenLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: AppColors.textHint,
+                      color: context.colors.textHint,
                     ),
                   ),
                 ],
@@ -166,8 +166,8 @@ class _DeviceCard extends StatelessWidget {
               height: 8,
               decoration: BoxDecoration(
                 color: device.isCurrentDevice
-                    ? AppColors.success
-                    : AppColors.divider,
+                    ? context.colors.success
+                    : context.colors.divider,
                 shape: BoxShape.circle,
               ),
             ),

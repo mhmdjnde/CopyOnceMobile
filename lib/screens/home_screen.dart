@@ -104,8 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
   void _toast(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.primary,
+        content: Text(
+          message,
+          style: TextStyle(color: context.colors.onPrimary),
+        ),
+        backgroundColor: context.colors.primary,
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
@@ -151,9 +154,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     vertical: AppSpacing.xs + 2,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: context.colors.surface,
                     borderRadius: BorderRadius.circular(AppRadius.full),
-                    border: Border.all(color: AppColors.divider),
+                    border: Border.all(color: context.colors.divider),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -161,17 +164,17 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
-                          color: AppColors.success,
+                        decoration: BoxDecoration(
+                          color: context.colors.success,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '$deviceCount devices',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textSecondary,
+                          color: context.colors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -188,15 +191,15 @@ class _HomeScreenState extends State<HomeScreen> {
       floatingActionButton: _typeFilter == ClipboardItemType.image
           ? FloatingActionButton.extended(
               onPressed: controller.isUploading ? null : _uploadImage,
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.onPrimary,
               icon: controller.isUploading
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: AppColors.white,
+                        color: context.colors.onPrimary,
                       ),
                     )
                   : const Icon(Icons.add_photo_alternate_outlined),
@@ -204,8 +207,8 @@ class _HomeScreenState extends State<HomeScreen> {
             )
           : FloatingActionButton.extended(
               onPressed: _captureNow,
-              backgroundColor: AppColors.primary,
-              foregroundColor: AppColors.white,
+              backgroundColor: context.colors.primary,
+              foregroundColor: context.colors.onPrimary,
               icon: const Icon(Icons.content_paste_go_rounded),
               label: const Text('Save clipboard'),
             ),
@@ -365,10 +368,10 @@ class _DeleteBackground extends StatelessWidget {
       alignment: Alignment.centerRight,
       padding: const EdgeInsets.only(right: AppSpacing.l),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.12),
+        color: context.colors.error.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppRadius.l),
       ),
-      child: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+      child: Icon(Icons.delete_outline_rounded, color: context.colors.error),
     );
   }
 }
@@ -390,32 +393,32 @@ class _ErrorState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
+              decoration: BoxDecoration(
+                color: context.colors.surface,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.cloud_off_rounded,
                 size: 30,
-                color: AppColors.textHint,
+                color: context.colors.textHint,
               ),
             ),
             const SizedBox(height: AppSpacing.l),
-            const Text(
+            Text(
               'Cannot reach your clipboard',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: AppSpacing.s),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
               ),
             ),
@@ -477,28 +480,28 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
+              decoration: BoxDecoration(
+                color: context.colors.surface,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 32, color: AppColors.textHint),
+              child: Icon(icon, size: 32, color: context.colors.textHint),
             ),
             const SizedBox(height: AppSpacing.l),
             Text(
               title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: context.colors.textPrimary,
               ),
             ),
             const SizedBox(height: AppSpacing.s),
             Text(
               body,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.5,
               ),
             ),

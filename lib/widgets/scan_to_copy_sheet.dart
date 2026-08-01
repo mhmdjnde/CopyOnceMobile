@@ -27,7 +27,7 @@ class ScanToCopySheet extends StatefulWidget {
   static Future<void> show(BuildContext context, ClipboardItem item) {
     return showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       isScrollControlled: true,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
@@ -102,10 +102,10 @@ class _ScanToCopySheetState extends State<ScanToCopySheet> {
               Text(
                 payload.action.title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   letterSpacing: -0.3,
                 ),
               ),
@@ -113,9 +113,9 @@ class _ScanToCopySheetState extends State<ScanToCopySheet> {
               Text(
                 payload.action.scannerPromise,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   height: 1.4,
                 ),
               ),
@@ -131,7 +131,7 @@ class _ScanToCopySheetState extends State<ScanToCopySheet> {
                 const SizedBox(height: AppSpacing.m),
                 _Notice(
                   icon: Icons.content_cut_rounded,
-                  color: AppColors.warning,
+                  color: context.colors.warning,
                   message:
                       'Only the first ${QrPayload.maxLength} characters fit in '
                       'a scannable code. Send the rest another way.',
@@ -139,9 +139,9 @@ class _ScanToCopySheetState extends State<ScanToCopySheet> {
               ],
 
               const SizedBox(height: AppSpacing.m),
-              const _Notice(
+              _Notice(
                 icon: Icons.visibility_outlined,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 message:
                     'Anyone who can see or photograph this code gets the '
                     'content. Nothing is uploaded — it lives in the code '
@@ -172,26 +172,26 @@ class _QrPanel extends StatelessWidget {
             // beige app background is not reliable enough.
             color: AppColors.white,
             borderRadius: BorderRadius.circular(AppRadius.l),
-            border: Border.all(color: AppColors.divider),
+            border: Border.all(color: context.colors.divider),
           ),
           child: QrImageView(
             data: data,
             size: 240,
             backgroundColor: AppColors.white,
-            eyeStyle: const QrEyeStyle(
+            eyeStyle: QrEyeStyle(
               eyeShape: QrEyeShape.square,
-              color: AppColors.primary,
+              color: context.colors.primary,
             ),
-            dataModuleStyle: const QrDataModuleStyle(
+            dataModuleStyle: QrDataModuleStyle(
               dataModuleShape: QrDataModuleShape.square,
-              color: AppColors.primary,
+              color: context.colors.primary,
             ),
           ),
         ),
         const SizedBox(height: AppSpacing.s),
         Text(
           'Hides in ${secondsLeft}s',
-          style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+          style: TextStyle(fontSize: 12, color: context.colors.textHint),
         ),
       ],
     );
@@ -209,24 +209,24 @@ class _HiddenPlaceholder extends StatelessWidget {
       height: 272,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: context.colors.surface,
         borderRadius: BorderRadius.circular(AppRadius.l),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             Icons.visibility_off_outlined,
             size: 28,
-            color: AppColors.textHint,
+            color: context.colors.textHint,
           ),
           const SizedBox(height: AppSpacing.m),
-          const Text(
+          Text(
             'Code hidden',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.l),

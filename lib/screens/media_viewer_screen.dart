@@ -16,6 +16,13 @@ import '../theme/app_theme.dart';
 /// image may disappear from the list shortly after you look at it — so the
 /// bytes are held in this screen's state and the download button reuses them
 /// rather than fetching again.
+/// The viewer's ground, fixed in both themes.
+///
+/// An image reads truer against neutral dark, and a photo that sat on a beige
+/// page in light mode and a black one at night would look like two different
+/// photos. This is the one screen that does not follow the palette.
+const Color _viewerBackdrop = Color(0xFF141814);
+
 class MediaViewerScreen extends StatefulWidget {
   const MediaViewerScreen({super.key, required this.item});
 
@@ -101,7 +108,7 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.colors.primary,
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
         shape: RoundedRectangleBorder(
@@ -118,9 +125,9 @@ class _MediaViewerScreenState extends State<MediaViewerScreen> {
     return Scaffold(
       // Dark ground: an image reads truer against neutral black than against
       // the app's warm beige, and this is the one screen that is entirely image.
-      backgroundColor: AppColors.textPrimary,
+      backgroundColor: _viewerBackdrop,
       appBar: AppBar(
-        backgroundColor: AppColors.textPrimary,
+        backgroundColor: _viewerBackdrop,
         foregroundColor: AppColors.white,
         elevation: 0,
         title: Text(
@@ -221,7 +228,7 @@ class _MediaFooter extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppSpacing.m),
-      color: AppColors.textPrimary,
+      color: _viewerBackdrop,
       child: SafeArea(
         top: false,
         child: Column(

@@ -3,6 +3,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'auth/sign_in_screen.dart';
 import 'auth/sign_up_screen.dart';
+import '../widgets/app_logo.dart';
 
 /// Single-step onboarding that introduces the app's core value proposition,
 /// then hands off to account creation.
@@ -31,7 +32,7 @@ class OnboardingScreen extends StatelessWidget {
     final contentWidth = screenWidth > 600 ? 480.0 : double.infinity;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -45,26 +46,18 @@ class OnboardingScreen extends StatelessWidget {
                   const Spacer(flex: 2),
 
                   // Logo
-                  SizedBox(
-                    width: 80,
-                    height: 80,
-                    child: Image.asset(
-                      'assets/images/copyonce_logo.png',
-                      fit: BoxFit.contain,
-                      semanticLabel: 'CopyOnce logo',
-                    ),
-                  ),
+                  AppLogo(size: 80),
 
                   const SizedBox(height: AppSpacing.xl),
 
                   // Headline
-                  const Text(
+                  Text(
                     'Copy once,\naccess everywhere.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       height: 1.2,
                       letterSpacing: -0.8,
                     ),
@@ -73,12 +66,12 @@ class OnboardingScreen extends StatelessWidget {
                   const SizedBox(height: AppSpacing.m),
 
                   // Subtitle
-                  const Text(
+                  Text(
                     'Your clipboard, synced instantly across\niPhone, Android, and desktop.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       height: 1.6,
                     ),
                   ),
@@ -150,17 +143,17 @@ class _FeatureBullet extends StatelessWidget {
           width: 32,
           height: 32,
           decoration: BoxDecoration(
-            color: AppColors.accentSubtle,
+            color: context.colors.accentSubtle,
             borderRadius: BorderRadius.circular(AppRadius.s),
           ),
-          child: Icon(icon, size: 16, color: AppColors.accent),
+          child: Icon(icon, size: 16, color: context.colors.accent),
         ),
         const SizedBox(width: AppSpacing.m),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 15,
-            color: AppColors.textPrimary,
+            color: context.colors.textPrimary,
             fontWeight: FontWeight.w500,
           ),
         ),

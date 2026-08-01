@@ -102,7 +102,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         Text(
           'You will stay signed out until you set a new password.',
           textAlign: TextAlign.center,
-          style: const TextStyle(color: AppColors.textHint, fontSize: 13),
+          style: TextStyle(color: context.colors.textHint, fontSize: 13),
         ),
       ],
     );

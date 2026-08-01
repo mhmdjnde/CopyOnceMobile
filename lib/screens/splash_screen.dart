@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import '../widgets/app_logo.dart';
 
 /// Full-screen splash shown at app launch while the session is restored.
 ///
@@ -36,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Center(
           child: FadeTransition(
@@ -45,23 +46,15 @@ class _SplashScreenState extends State<SplashScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Logo
-                SizedBox(
-                  width: 96,
-                  height: 96,
-                  child: Image.asset(
-                    'assets/images/copyonce_logo.png',
-                    fit: BoxFit.contain,
-                    semanticLabel: 'CopyOnce logo',
-                  ),
-                ),
+                AppLogo(size: 96),
                 const SizedBox(height: 20),
                 // App name
-                const Text(
+                Text(
                   'CopyOnce',
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
+                    color: context.colors.textPrimary,
                     letterSpacing: -0.5,
                   ),
                 ),

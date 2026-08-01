@@ -150,11 +150,11 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
         ),
 
         const SizedBox(height: AppSpacing.s),
-        const Text(
+        Text(
           'Wrong address? Go back and sign up again.',
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             fontSize: 13,
             height: 1.4,
           ),

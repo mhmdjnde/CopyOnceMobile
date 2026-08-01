@@ -27,13 +27,13 @@ class DeviceBadge extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(_icon, size: 12, color: AppColors.textHint),
+        Icon(_icon, size: 12, color: context.colors.textHint),
         const SizedBox(width: 3),
         Text(
           deviceName,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 11,
-            color: AppColors.textHint,
+            color: context.colors.textHint,
             fontWeight: FontWeight.w400,
           ),
         ),

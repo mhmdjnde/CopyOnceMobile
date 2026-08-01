@@ -73,11 +73,11 @@ class _MediaThumbnailState extends State<MediaThumbnail> {
             if (data == null) {
               // An image whose thumbnail has already been reaped, or a
               // connection that dropped. Neither is worth an error banner.
-              return const _ThumbnailFrame(
+              return _ThumbnailFrame(
                 child: Icon(
                   Icons.image_not_supported_outlined,
                   size: 20,
-                  color: AppColors.textHint,
+                  color: context.colors.textHint,
                 ),
               );
             }
@@ -88,11 +88,11 @@ class _MediaThumbnailState extends State<MediaThumbnail> {
               height: widget.size,
               fit: BoxFit.cover,
               gaplessPlayback: true,
-              errorBuilder: (_, _, _) => const _ThumbnailFrame(
+              errorBuilder: (_, _, _) => _ThumbnailFrame(
                 child: Icon(
                   Icons.broken_image_outlined,
                   size: 20,
-                  color: AppColors.textHint,
+                  color: context.colors.textHint,
                 ),
               ),
             );
@@ -114,8 +114,8 @@ class _ThumbnailFrame extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.divider),
+        color: context.colors.surface,
+        border: Border.all(color: context.colors.divider),
         borderRadius: BorderRadius.circular(AppRadius.m),
       ),
       child: Center(child: child),
@@ -139,13 +139,16 @@ class MediaExpiryChip extends StatelessWidget {
     if (left == null) return const SizedBox.shrink();
 
     final (label, color) = switch (left) {
-      Duration.zero => ('Delivered', AppColors.success),
-      final d when d.inHours >= 1 => ('${d.inHours}h left', AppColors.textHint),
+      Duration.zero => ('Delivered', context.colors.success),
+      final d when d.inHours >= 1 => (
+        '${d.inHours}h left',
+        context.colors.textHint,
+      ),
       final d when d.inMinutes >= 1 => (
         '${d.inMinutes}m left',
-        AppColors.warning,
+        context.colors.warning,
       ),
-      _ => ('Expiring', AppColors.warning),
+      _ => ('Expiring', context.colors.warning),
     };
 
     return Semantics(
@@ -158,7 +161,7 @@ class MediaExpiryChip extends StatelessWidget {
           vertical: 2,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: context.colors.surface,
           borderRadius: BorderRadius.circular(AppRadius.s),
         ),
         child: Row(

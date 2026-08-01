@@ -135,13 +135,13 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     ),
                     const SizedBox(height: AppSpacing.m),
 
-                    const Text(
+                    Text(
                       'Other devices stay signed in. Sign out of them from '
                       'Settings if you think someone else knew your old '
                       'password.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: context.colors.textSecondary,
                         height: 1.4,
                       ),
                     ),

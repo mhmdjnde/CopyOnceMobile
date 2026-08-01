@@ -33,12 +33,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               AppSpacing.l,
               AppSpacing.m,
             ),
-            child: const Text(
+            child: Text(
               'Anything older is deleted from your account automatically. '
               'Pinned items are always kept.',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -52,7 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   RadioListTile<int>(
                     value: days,
                     title: Text(SyncSettings.retentionLabel(days)),
-                    activeColor: AppColors.accent,
+                    activeColor: context.colors.accent,
                   ),
               ],
             ),
@@ -99,7 +99,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: context.colors.error),
             child: const Text('Clear'),
           ),
         ],
@@ -140,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(foregroundColor: context.colors.error),
             child: const Text('Sign Out'),
           ),
         ],
@@ -173,11 +173,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SettingsCard(
                 children: [
                   ListTile(
-                    leading: const CircleAvatar(
-                      backgroundColor: AppColors.accentSubtle,
+                    leading: CircleAvatar(
+                      backgroundColor: context.colors.accentSubtle,
                       child: Icon(
                         Icons.person_outline_rounded,
-                        color: AppColors.accent,
+                        color: context.colors.accent,
                         size: 20,
                       ),
                     ),
@@ -189,16 +189,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const Divider(),
                   ListTile(
-                    leading: const Icon(
+                    leading: Icon(
                       Icons.shield_outlined,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       size: 20,
                     ),
                     title: const Text('Security'),
                     subtitle: const Text('Password and two-factor'),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.chevron_right_rounded,
-                      color: AppColors.textHint,
+                      color: context.colors.textHint,
                       size: 18,
                     ),
                     onTap: () =>
@@ -207,9 +207,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const Divider(),
                   ListTile(
                     onTap: auth.isBusy ? null : _confirmSignOut,
-                    title: const Text(
+                    title: Text(
                       'Sign out',
-                      style: TextStyle(color: AppColors.error),
+                      style: TextStyle(color: context.colors.error),
                     ),
                     trailing: auth.isBusy
                         ? const SizedBox(
@@ -217,9 +217,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             width: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Icon(
+                        : Icon(
                             Icons.logout_rounded,
-                            color: AppColors.error,
+                            color: context.colors.error,
                             size: 18,
                           ),
                   ),
@@ -253,7 +253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: const Text(
                         'Save what you copy when CopyOnce opens',
                       ),
-                      activeThumbColor: AppColors.accent,
+                      activeThumbColor: context.colors.accent,
                     ),
                     const Divider(),
                     SwitchListTile(
@@ -263,7 +263,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           : null,
                       title: const Text('Wi-Fi only'),
                       subtitle: const Text('Do not sync on mobile data'),
-                      activeThumbColor: AppColors.accent,
+                      activeThumbColor: context.colors.accent,
                     ),
                   ],
                 ),
@@ -279,7 +279,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: settingsController.setCaptureText,
                       title: const Text('Text'),
                       subtitle: const Text('Plain text you copy'),
-                      activeThumbColor: AppColors.accent,
+                      activeThumbColor: context.colors.accent,
                     ),
                     const Divider(),
                     SwitchListTile(
@@ -287,13 +287,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: settingsController.setCaptureLinks,
                       title: const Text('Links'),
                       subtitle: const Text('Web addresses you copy'),
-                      activeThumbColor: AppColors.accent,
+                      activeThumbColor: context.colors.accent,
                     ),
                     const Divider(),
-                    const ListTile(
+                    ListTile(
                       title: Text(
                         'Images',
-                        style: TextStyle(color: AppColors.textHint),
+                        style: TextStyle(color: context.colors.textHint),
                       ),
                       subtitle: Text(
                         'Not synced yet — screenshots and images are ignored',
@@ -301,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       trailing: Icon(
                         Icons.lock_outline_rounded,
                         size: 16,
-                        color: AppColors.textHint,
+                        color: context.colors.textHint,
                       ),
                       enabled: false,
                     ),
@@ -321,7 +321,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       subtitle: const Text(
                         'Tell me when something is saved or arrives',
                       ),
-                      activeThumbColor: AppColors.accent,
+                      activeThumbColor: context.colors.accent,
                     ),
                   ],
                 ),
@@ -345,12 +345,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             settings.retentionSummary,
-                            style: const TextStyle(color: AppColors.textHint),
+                            style: TextStyle(color: context.colors.textHint),
                           ),
                           const SizedBox(width: 4),
-                          const Icon(
+                          Icon(
                             Icons.chevron_right_rounded,
-                            color: AppColors.textHint,
+                            color: context.colors.textHint,
                             size: 18,
                           ),
                         ],
@@ -359,17 +359,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const Divider(),
                     ListTile(
                       onTap: _confirmClearHistory,
-                      title: const Text(
+                      title: Text(
                         'Clear synced history',
-                        style: TextStyle(color: AppColors.error),
+                        style: TextStyle(color: context.colors.error),
                       ),
                       subtitle: const Text(
                         "Deletes stored items only — your phone's clipboard is "
                         'left alone',
                       ),
-                      trailing: const Icon(
+                      trailing: Icon(
                         Icons.delete_outline_rounded,
-                        color: AppColors.error,
+                        color: context.colors.error,
                         size: 18,
                       ),
                     ),
@@ -382,10 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.only(top: AppSpacing.m),
                   child: Text(
                     settingsController.errorMessage!,
-                    style: const TextStyle(
-                      color: AppColors.error,
-                      fontSize: 13,
-                    ),
+                    style: TextStyle(color: context.colors.error, fontSize: 13),
                   ),
                 ),
 
@@ -395,31 +392,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
               _SectionHeader(label: 'About'),
               _SettingsCard(
                 children: [
-                  const ListTile(
+                  ListTile(
                     title: Text('Version'),
                     trailing: Text(
                       '1.0.0',
-                      style: TextStyle(color: AppColors.textHint),
+                      style: TextStyle(color: context.colors.textHint),
                     ),
                   ),
                   const Divider(),
                   ListTile(
                     onTap: () {},
                     title: const Text('Terms of Service'),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.open_in_new_rounded,
                       size: 16,
-                      color: AppColors.textHint,
+                      color: context.colors.textHint,
                     ),
                   ),
                   const Divider(),
                   ListTile(
                     onTap: () {},
                     title: const Text('Privacy Policy'),
-                    trailing: const Icon(
+                    trailing: Icon(
                       Icons.open_in_new_rounded,
                       size: 16,
-                      color: AppColors.textHint,
+                      color: context.colors.textHint,
                     ),
                   ),
                 ],
@@ -445,10 +442,10 @@ class _SectionHeader extends StatelessWidget {
       padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.s),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: AppColors.textHint,
+          color: context.colors.textHint,
           letterSpacing: 1.0,
         ),
       ),

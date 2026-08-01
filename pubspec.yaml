@@ -56,7 +56,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/images/copyonce_logo.png
+    - assets/images/copyonce_logo_light.png
+    - assets/images/copyonce_logo_dark.png
 
 # Launcher icons, generated with `dart run flutter_launcher_icons`.
 #

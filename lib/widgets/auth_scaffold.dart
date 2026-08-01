@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../utils/validators.dart';
+import 'app_logo.dart';
 
 /// Shared chrome for the auth screens: logo, title, subtitle, and a
 /// width-constrained column that stays centred on wide desktop layouts.
@@ -26,7 +27,7 @@ class AuthScaffold extends StatelessWidget {
     final isWide = MediaQuery.sizeOf(context).width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       appBar: showBackButton
           ? AppBar(
               leading: const BackButton(),
@@ -47,22 +48,15 @@ class AuthScaffold extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(
-                    height: 56,
-                    child: Image.asset(
-                      'assets/images/copyonce_logo.png',
-                      fit: BoxFit.contain,
-                      semanticLabel: 'CopyOnce logo',
-                    ),
-                  ),
+                  const AppLogo(size: 56),
                   const SizedBox(height: AppSpacing.l),
                   Text(
                     title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -70,9 +64,9 @@ class AuthScaffold extends StatelessWidget {
                   Text(
                     subtitle,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       height: 1.5,
                     ),
                   ),
@@ -100,24 +94,24 @@ class AuthErrorBanner extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: AppSpacing.m),
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
+        color: context.colors.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(AppRadius.m),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+        border: Border.all(color: context.colors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(
+          Icon(
             Icons.error_outline_rounded,
-            color: AppColors.error,
+            color: context.colors.error,
             size: 20,
           ),
           const SizedBox(width: AppSpacing.s),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
-                color: AppColors.error,
+              style: TextStyle(
+                color: context.colors.error,
                 fontSize: 14,
                 height: 1.4,
               ),
@@ -147,12 +141,12 @@ class AuthSubmitButton extends StatelessWidget {
     return ElevatedButton(
       onPressed: isBusy ? null : onPressed,
       child: isBusy
-          ? const SizedBox(
+          ? SizedBox(
               height: 20,
               width: 20,
               child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors.white,
+                color: context.colors.onPrimary,
               ),
             )
           : Text(label),
@@ -178,7 +172,7 @@ class PasswordVisibilityToggle extends StatelessWidget {
       icon: Icon(
         isObscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
         size: 20,
-        color: AppColors.textHint,
+        color: context.colors.textHint,
       ),
       tooltip: isObscured ? 'Show password' : 'Hide password',
     );
@@ -206,10 +200,7 @@ class AuthFooterPrompt extends StatelessWidget {
         Flexible(
           child: Text(
             question,
-            style: const TextStyle(
-              color: AppColors.textSecondary,
-              fontSize: 14,
-            ),
+            style: TextStyle(color: context.colors.textSecondary, fontSize: 14),
           ),
         ),
         TextButton(
@@ -268,20 +259,20 @@ class VerificationCodeField extends StatelessWidget {
       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
       // Tracking is tight enough that the longest allowed code still fits a
       // narrow phone without the field scrolling sideways.
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 26,
         fontWeight: FontWeight.w700,
         letterSpacing: 6,
-        color: AppColors.textPrimary,
+        color: context.colors.textPrimary,
       ),
       decoration: InputDecoration(
         hintText: '0' * _length,
         counterText: '',
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontSize: 26,
           fontWeight: FontWeight.w700,
           letterSpacing: 6,
-          color: AppColors.textHint,
+          color: context.colors.textHint,
         ),
       ),
       onChanged: (value) {
@@ -335,10 +326,10 @@ class AuthTextField extends StatelessWidget {
           ),
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+              color: context.colors.textSecondary,
             ),
           ),
         ),

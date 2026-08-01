@@ -13,7 +13,7 @@ class ConfigErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: context.colors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -23,27 +23,27 @@ class ConfigErrorScreen extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.settings_suggest_outlined,
                     size: 48,
-                    color: AppColors.textHint,
+                    color: context.colors.textHint,
                   ),
                   const SizedBox(height: AppSpacing.l),
-                  const Text(
+                  Text(
                     'Setup required',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
+                      color: context.colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.m),
                   Text(
                     message,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.textSecondary,
+                      color: context.colors.textSecondary,
                       height: 1.6,
                     ),
                   ),

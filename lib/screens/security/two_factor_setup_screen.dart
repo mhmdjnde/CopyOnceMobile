@@ -121,7 +121,7 @@ class _SetupLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
+    return Padding(
       padding: EdgeInsets.symmetric(vertical: AppSpacing.xxl),
       child: Column(
         children: [
@@ -129,7 +129,7 @@ class _SetupLoading extends StatelessWidget {
           SizedBox(height: AppSpacing.l),
           Text(
             'Preparing your setup key…',
-            style: TextStyle(color: AppColors.textSecondary),
+            style: TextStyle(color: context.colors.textSecondary),
           ),
         ],
       ),
@@ -149,16 +149,12 @@ class _SetupFailed extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.xl),
       child: Column(
         children: [
-          const Icon(
-            Icons.shield_outlined,
-            size: 40,
-            color: AppColors.textHint,
-          ),
+          Icon(Icons.shield_outlined, size: 40, color: context.colors.textHint),
           const SizedBox(height: AppSpacing.m),
           Text(
             message ?? 'Could not start setup.',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: AppColors.textSecondary, height: 1.4),
+            style: TextStyle(color: context.colors.textSecondary, height: 1.4),
           ),
           const SizedBox(height: AppSpacing.l),
           ElevatedButton(onPressed: onRetry, child: const Text('Try again')),
@@ -208,20 +204,20 @@ class _SetupSteps extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(AppRadius.l),
-              border: Border.all(color: AppColors.divider),
+              border: Border.all(color: context.colors.divider),
             ),
             child: QrImageView(
               data: enrollment.otpauthUri,
               size: 200,
               backgroundColor: AppColors.white,
               // Brand-matched, kept dark enough for reliable scanning.
-              eyeStyle: const QrEyeStyle(
+              eyeStyle: QrEyeStyle(
                 eyeShape: QrEyeShape.square,
-                color: AppColors.primary,
+                color: context.colors.primary,
               ),
-              dataModuleStyle: const QrDataModuleStyle(
+              dataModuleStyle: QrDataModuleStyle(
                 dataModuleShape: QrDataModuleShape.square,
-                color: AppColors.primary,
+                color: context.colors.primary,
               ),
             ),
           ),
@@ -232,18 +228,18 @@ class _SetupSteps extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(AppSpacing.m),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.m),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 "Can't scan? Enter this key instead",
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                 ),
               ),
               const SizedBox(height: AppSpacing.s),
@@ -252,11 +248,11 @@ class _SetupSteps extends StatelessWidget {
                   Expanded(
                     child: SelectableText(
                       enrollment.formattedSecret,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 14,
                         letterSpacing: 1,
-                        color: AppColors.textPrimary,
+                        color: context.colors.textPrimary,
                       ),
                     ),
                   ),
@@ -264,7 +260,7 @@ class _SetupSteps extends StatelessWidget {
                     onPressed: onCopySecret,
                     icon: const Icon(Icons.copy_rounded, size: 18),
                     tooltip: 'Copy setup key',
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                   ),
                 ],
               ),
@@ -299,12 +295,12 @@ class _SetupSteps extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.m),
 
-        const Text(
+        Text(
           'Keep your authenticator backed up. Without it — and without this '
           'setup key — you will not be able to sign in.',
           style: TextStyle(
             fontSize: 13,
-            color: AppColors.textSecondary,
+            color: context.colors.textSecondary,
             height: 1.4,
           ),
         ),
@@ -333,16 +329,16 @@ class _StepHeader extends StatelessWidget {
           height: 24,
           width: 24,
           alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            color: AppColors.accentSubtle,
+          decoration: BoxDecoration(
+            color: context.colors.accentSubtle,
             shape: BoxShape.circle,
           ),
           child: Text(
             '$step',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: AppColors.primary,
+              color: context.colors.primary,
             ),
           ),
         ),
@@ -353,18 +349,18 @@ class _StepHeader extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 detail,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textSecondary,
+                  color: context.colors.textSecondary,
                   height: 1.4,
                 ),
               ),

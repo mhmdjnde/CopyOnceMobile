@@ -86,16 +86,16 @@ class _MfaChallengeScreenState extends State<MfaChallengeScreen> {
         Container(
           padding: const EdgeInsets.all(AppSpacing.m),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: context.colors.surface,
             borderRadius: BorderRadius.circular(AppRadius.m),
           ),
-          child: const Row(
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(
                 Icons.info_outline_rounded,
                 size: 18,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
               ),
               SizedBox(width: AppSpacing.s),
               Expanded(
@@ -104,7 +104,7 @@ class _MfaChallengeScreenState extends State<MfaChallengeScreen> {
                   'rejected, check that your phone clock is set automatically.',
                   style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     height: 1.4,
                   ),
                 ),

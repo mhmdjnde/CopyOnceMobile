@@ -127,16 +127,16 @@ class _SecurityViewState extends State<_SecurityView> {
               const _SectionLabel('Password'),
               Card(
                 child: ListTile(
-                  leading: const Icon(
+                  leading: Icon(
                     Icons.password_rounded,
-                    color: AppColors.textSecondary,
+                    color: context.colors.textSecondary,
                     size: 20,
                   ),
                   title: const Text('Change password'),
                   subtitle: const Text('Requires your current password'),
-                  trailing: const Icon(
+                  trailing: Icon(
                     Icons.chevron_right_rounded,
-                    color: AppColors.textHint,
+                    color: context.colors.textHint,
                     size: 18,
                   ),
                   onTap: security.isBusy ? null : _openChangePassword,
@@ -184,14 +184,16 @@ class _TwoFactorCard extends StatelessWidget {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     color: isOn
-                        ? AppColors.successSubtle
-                        : AppColors.primarySubtle,
+                        ? context.colors.successSubtle
+                        : context.colors.primarySubtle,
                     borderRadius: BorderRadius.circular(AppRadius.m),
                   ),
                   child: Icon(
                     isOn ? Icons.verified_user_rounded : Icons.shield_outlined,
                     size: 20,
-                    color: isOn ? AppColors.success : AppColors.textSecondary,
+                    color: isOn
+                        ? context.colors.success
+                        : context.colors.textSecondary,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.m),
@@ -199,12 +201,12 @@ class _TwoFactorCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Two-factor authentication',
                         style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: context.colors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -218,8 +220,8 @@ class _TwoFactorCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           color: isOn
-                              ? AppColors.success
-                              : AppColors.textSecondary,
+                              ? context.colors.success
+                              : context.colors.textSecondary,
                           height: 1.4,
                         ),
                       ),
@@ -245,8 +247,8 @@ class _TwoFactorCard extends StatelessWidget {
               OutlinedButton(
                 onPressed: isBusy ? null : onDisable,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.error,
-                  side: const BorderSide(color: AppColors.divider),
+                  foregroundColor: context.colors.error,
+                  side: BorderSide(color: context.colors.divider),
                   padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppRadius.l),
@@ -301,12 +303,12 @@ class _DisableTwoFactorDialogState extends State<_DisableTwoFactorDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+            Text(
               'Your password alone will protect your clipboard. Enter a '
               'current code to confirm it is you.',
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: context.colors.textSecondary,
                 height: 1.4,
               ),
             ),
@@ -328,7 +330,7 @@ class _DisableTwoFactorDialogState extends State<_DisableTwoFactorDialog> {
         ),
         TextButton(
           onPressed: _submit,
-          style: TextButton.styleFrom(foregroundColor: AppColors.error),
+          style: TextButton.styleFrom(foregroundColor: context.colors.error),
           child: const Text('Turn off'),
         ),
       ],
@@ -347,10 +349,10 @@ class _SectionLabel extends StatelessWidget {
       padding: const EdgeInsets.only(left: AppSpacing.xs, bottom: AppSpacing.s),
       child: Text(
         label.toUpperCase(),
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 11,
           fontWeight: FontWeight.w700,
-          color: AppColors.textHint,
+          color: context.colors.textHint,
           letterSpacing: 1.0,
         ),
       ),

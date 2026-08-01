@@ -53,20 +53,20 @@ class _ClipboardCardState extends State<ClipboardCard> {
   ({Color bg, Color fg, IconData icon, String label}) get _typeInfo =>
       switch (widget.item.type) {
         ClipboardItemType.text => (
-          bg: AppColors.primarySubtle,
-          fg: AppColors.primary,
+          bg: context.colors.primarySubtle,
+          fg: context.colors.primary,
           icon: Icons.notes_rounded,
           label: 'Text',
         ),
         ClipboardItemType.link => (
-          bg: AppColors.linkSubtle,
-          fg: AppColors.link,
+          bg: context.colors.linkSubtle,
+          fg: context.colors.link,
           icon: Icons.link_rounded,
           label: 'Link',
         ),
         ClipboardItemType.image => (
-          bg: AppColors.accentImageSubtle,
-          fg: AppColors.accent,
+          bg: context.colors.accentImageSubtle,
+          fg: context.colors.accent,
           icon: Icons.image_outlined,
           label: 'Image',
         ),
@@ -119,12 +119,12 @@ class _ClipboardCardState extends State<ClipboardCard> {
                   ),
                   if (widget.item.isPinned) ...[
                     const SizedBox(width: AppSpacing.s),
-                    const Tooltip(
+                    Tooltip(
                       message: 'Pinned',
                       child: Icon(
                         Icons.push_pin_rounded,
                         size: 14,
-                        color: AppColors.textHint,
+                        color: context.colors.textHint,
                       ),
                     ),
                   ],
@@ -149,13 +149,13 @@ class _ClipboardCardState extends State<ClipboardCard> {
                           height: 32,
                           margin: const EdgeInsets.only(right: AppSpacing.s),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
+                            color: context.colors.surface,
                             borderRadius: BorderRadius.circular(AppRadius.s),
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.qr_code_rounded,
                             size: 16,
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ),
                       ),
@@ -173,8 +173,8 @@ class _ClipboardCardState extends State<ClipboardCard> {
                         height: 32,
                         decoration: BoxDecoration(
                           color: _copied && !widget.item.isImage
-                              ? AppColors.successSubtle
-                              : AppColors.surface,
+                              ? context.colors.successSubtle
+                              : context.colors.surface,
                           borderRadius: BorderRadius.circular(AppRadius.s),
                         ),
                         child: Icon(
@@ -185,8 +185,8 @@ class _ClipboardCardState extends State<ClipboardCard> {
                           },
                           size: 16,
                           color: _copied && !widget.item.isImage
-                              ? AppColors.success
-                              : AppColors.textSecondary,
+                              ? context.colors.success
+                              : context.colors.textSecondary,
                         ),
                       ),
                     ),
@@ -209,16 +209,19 @@ class _ClipboardCardState extends State<ClipboardCard> {
                     platform: widget.item.devicePlatform,
                   ),
                   const SizedBox(width: AppSpacing.s),
-                  const Text(
+                  Text(
                     '·',
-                    style: TextStyle(color: AppColors.textHint, fontSize: 11),
+                    style: TextStyle(
+                      color: context.colors.textHint,
+                      fontSize: 11,
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.s),
                   Text(
                     MockData.formatTimestamp(widget.item.timestamp),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textHint,
+                      color: context.colors.textHint,
                     ),
                   ),
                 ],
@@ -244,9 +247,9 @@ class _ContentPreview extends StatelessWidget {
         item.content,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
-          color: AppColors.textPrimary,
+          color: context.colors.textPrimary,
           height: 1.5,
         ),
       ),
@@ -276,9 +279,9 @@ class _LinkPreview extends StatelessWidget {
       children: [
         Text(
           _domain,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: AppColors.link,
+            color: context.colors.link,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -287,7 +290,7 @@ class _LinkPreview extends StatelessWidget {
           url,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontSize: 12, color: AppColors.textHint),
+          style: TextStyle(fontSize: 12, color: context.colors.textHint),
         ),
       ],
     );
@@ -315,9 +318,9 @@ class _ImagePreview extends StatelessWidget {
                 item.content,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppColors.textPrimary,
+                  color: context.colors.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -325,9 +328,9 @@ class _ImagePreview extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${item.readableSize} · tap to open',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textHint,
+                    color: context.colors.textHint,
                   ),
                 ),
               ],
