@@ -308,7 +308,6 @@ export class MediaRepository {
  */
 function safeFilename(raw: string): string {
   const base = raw.split(/[/\\]/).pop() ?? raw;
-  // eslint-disable-next-line no-control-regex
   const cleaned = base.replace(/[\x00-\x1F\x7F]/g, "").trim();
   if (!cleaned) return "Image";
   return cleaned.length > 120 ? cleaned.slice(0, 120) : cleaned;

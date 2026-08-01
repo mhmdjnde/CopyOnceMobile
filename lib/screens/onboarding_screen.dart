@@ -96,9 +96,13 @@ class OnboardingScreen extends StatelessWidget {
                     label: 'Works across all your devices',
                   ),
                   const SizedBox(height: AppSpacing.m),
+                  // Not "end-to-end encrypted": content is readable at rest by
+                  // the database. See the note atop 0002_clipboard.sql. Claim
+                  // only what the backend actually does — if end-to-end
+                  // encryption lands, this line can change with it.
                   const _FeatureBullet(
                     icon: Icons.lock_outline_rounded,
-                    label: 'Private and end-to-end encrypted',
+                    label: 'Private to you, encrypted in transit',
                   ),
 
                   const Spacer(flex: 2),

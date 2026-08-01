@@ -8,6 +8,7 @@ import { Wordmark, cn } from "./ui";
 const TABS = [
   { href: "/clipboard", label: "Clipboard" },
   { href: "/clipboard/devices", label: "Devices" },
+  { href: "/clipboard/security", label: "Security" },
   { href: "/clipboard/settings", label: "Settings" },
 ] as const;
 

@@ -3,7 +3,24 @@
 import { useCopyOnce } from "@/lib/copyonce-provider";
 import { getInstallId, formatTimestamp } from "@/lib/clipboard";
 import { Button, Card, EmptyState, Spinner } from "@/components/ui";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+/**
+ * This browser's install id, read safely across the server/client boundary.
+ *
+ * localStorage does not exist during server rendering, so the server snapshot
+ * is null and the client fills it in — useSyncExternalStore is built for
+ * exactly this, and avoids both a hydration mismatch and a setState-in-effect.
+ */
+const NOOP_SUBSCRIBE = () => () => {};
+
+function useInstallId(): string | null {
+  return useSyncExternalStore(
+    NOOP_SUBSCRIBE,
+    () => getInstallId(),
+    () => null,
+  );
+}
 
 const PLATFORM_ICON: Record<string, string> = {
   ios: "",
@@ -16,10 +33,7 @@ const PLATFORM_ICON: Record<string, string> = {
 export default function DevicesPage() {
   const { devices, removeDevice, status } = useCopyOnce();
 
-  // localStorage is unavailable during server rendering, so this is read after
-  // mount to keep the markup identical on both sides.
-  const [installId, setInstallId] = useState<string | null>(null);
-  useEffect(() => setInstallId(getInstallId()), []);
+  const installId = useInstallId();
 
   if (status === "loading" && devices.length === 0) {
     return (
