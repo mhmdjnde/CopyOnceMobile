@@ -154,7 +154,7 @@ void main() {
       await tester.pumpWidget(wrap(const SignUpScreen()));
 
       await enterField(tester, 'you@example.com', 'new@example.com');
-      await enterField(tester, 'At least 12 characters', 'Str0ngPassphrase');
+      await enterField(tester, PasswordRule.length.label, 'Str0ngPassphrase');
       await enterField(tester, 'Re-enter your password', 'Str0ngPassphras3');
       await tapButton(tester, 'Create Account');
 
@@ -168,7 +168,7 @@ void main() {
       await tester.pumpWidget(wrap(const SignUpScreen()));
 
       await enterField(tester, 'you@example.com', 'new@example.com');
-      await enterField(tester, 'At least 12 characters', 'Short1');
+      await enterField(tester, PasswordRule.length.label, 'Short1');
       await enterField(tester, 'Re-enter your password', 'Short1');
       await tapButton(tester, 'Create Account');
 
@@ -186,7 +186,7 @@ void main() {
 
       await enterField(tester, 'How should we greet you?', 'Sam');
       await enterField(tester, 'you@example.com', 'new@example.com');
-      await enterField(tester, 'At least 12 characters', 'Str0ngPassphrase');
+      await enterField(tester, PasswordRule.length.label, 'Str0ngPassphrase');
       await enterField(tester, 'Re-enter your password', 'Str0ngPassphrase');
       await tapButton(tester, 'Create Account');
 
@@ -202,7 +202,7 @@ void main() {
       await tester.pumpWidget(wrap(const SignUpScreen()));
 
       await enterField(tester, 'you@example.com', 'new@example.com');
-      await enterField(tester, 'At least 12 characters', 'Str0ngPassphrase');
+      await enterField(tester, PasswordRule.length.label, 'Str0ngPassphrase');
       await enterField(tester, 'Re-enter your password', 'Str0ngPassphrase');
       await tapButton(tester, 'Create Account');
 

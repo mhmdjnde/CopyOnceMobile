@@ -3,15 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Card, ErrorBanner, Field, Spinner } from "@/components/ui";
-
-/** Mirrors the password rules in lib/utils/password_policy.dart. */
-function passwordProblem(password: string): string | null {
-  if (password.length < 8) return "Use at least 8 characters.";
-  if (!/[a-z]/.test(password)) return "Include a lowercase letter.";
-  if (!/[A-Z]/.test(password)) return "Include an uppercase letter.";
-  if (!/[0-9]/.test(password)) return "Include a number.";
-  return null;
-}
+import { PasswordField } from "@/components/password-field";
+import { validatePassword } from "@/lib/password-policy";
+import { AUTHENTICATOR_CODE_LENGTH } from "@/lib/types";
 
 interface Factor {
   id: string;
@@ -101,10 +95,9 @@ function ChangePassword({
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const problem = password ? passwordProblem(password) : null;
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    const problem = validatePassword(password);
     if (problem) return onError(problem);
     if (password !== confirm) return onError("Those passwords do not match.");
 
@@ -123,15 +116,10 @@ function ChangePassword({
     <Card className="p-4">
       <h2 className="text-sm font-semibold text-ink">Change password</h2>
       <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-4">
-        <Field
+        <PasswordField
           label="New password"
-          type="password"
-          autoComplete="new-password"
-          required
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          hint="At least 8 characters, with upper, lower, and a number."
-          error={password ? problem : null}
+          onChange={setPassword}
         />
         <Field
           label="Confirm password"
@@ -286,7 +274,7 @@ function TwoFactor({
             label="Code from your app"
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={6}
+            maxLength={AUTHENTICATOR_CODE_LENGTH}
             required
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
@@ -294,7 +282,7 @@ function TwoFactor({
           />
 
           <div className="flex gap-2">
-            <Button type="submit" loading={busy} disabled={code.length !== 6}>
+            <Button type="submit" loading={busy} disabled={code.length !== AUTHENTICATOR_CODE_LENGTH}>
               Turn on
             </Button>
             <Button

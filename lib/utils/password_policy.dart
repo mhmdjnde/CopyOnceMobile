@@ -79,8 +79,11 @@ class PasswordAssessment {
 
 abstract class PasswordPolicy {
   /// Long enough to matter, short enough that people will actually use it.
-  /// Must match the project's Auth → Passwords minimum length.
-  static const int minLength = 12;
+  ///
+  /// Must match three other places or a password accepted here is rejected
+  /// elsewhere: the project's Auth → Passwords minimum, and the web client's
+  /// `web/src/lib/password-policy.ts`, which mirrors this file rule for rule.
+  static const int minLength = 8;
 
   static final RegExp _lowercase = RegExp(r'[a-z]');
   static final RegExp _uppercase = RegExp(r'[A-Z]');
@@ -204,9 +207,12 @@ abstract class PasswordPolicy {
         !satisfied.contains(PasswordRule.notEmailLike);
     if (hasBlockingFailure) return PasswordStrength.weak;
 
+    // Absolute thresholds rather than multiples of minLength: the meter should
+    // keep discriminating above the minimum, not top out the moment a password
+    // becomes acceptable.
     var score = 0;
     if (password.length >= 8) score++;
-    if (password.length >= minLength) score++;
+    if (password.length >= 12) score++;
     if (password.length >= 16) score++;
     if (_symbol.hasMatch(password)) score++;
     if (satisfied.contains(PasswordRule.lowercase) &&

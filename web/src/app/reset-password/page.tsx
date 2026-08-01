@@ -4,15 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, ErrorBanner, Field, Spinner, Wordmark } from "@/components/ui";
-
-/** Mirrors the password rules in lib/utils/password_policy.dart. */
-function passwordProblem(password: string): string | null {
-  if (password.length < 8) return "Use at least 8 characters.";
-  if (!/[a-z]/.test(password)) return "Include a lowercase letter.";
-  if (!/[A-Z]/.test(password)) return "Include an uppercase letter.";
-  if (!/[0-9]/.test(password)) return "Include a number.";
-  return null;
-}
+import { PasswordField } from "@/components/password-field";
+import { validatePassword } from "@/lib/password-policy";
 
 /**
  * Lands here from the emailed recovery link.
@@ -39,10 +32,9 @@ export default function ResetPasswordPage() {
     });
   }, [supabase]);
 
-  const problem = password ? passwordProblem(password) : null;
-
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    const problem = validatePassword(password);
     if (problem) return setError(problem);
     if (password !== confirm) return setError("Those passwords do not match.");
 
@@ -92,16 +84,10 @@ export default function ResetPasswordPage() {
 
           {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-          <Field
+          <PasswordField
             label="New password"
-            type="password"
-            autoComplete="new-password"
-            required
-            autoFocus
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            hint="At least 8 characters, with upper, lower, and a number."
-            error={password ? problem : null}
+            onChange={setPassword}
           />
 
           <Field

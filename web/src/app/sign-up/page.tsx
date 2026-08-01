@@ -5,15 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, ErrorBanner, Field, Wordmark } from "@/components/ui";
-
-/** Mirrors the password rules in lib/utils/password_policy.dart. */
-function passwordProblem(password: string): string | null {
-  if (password.length < 8) return "Use at least 8 characters.";
-  if (!/[a-z]/.test(password)) return "Include a lowercase letter.";
-  if (!/[A-Z]/.test(password)) return "Include an uppercase letter.";
-  if (!/[0-9]/.test(password)) return "Include a number.";
-  return null;
-}
+import { PasswordField } from "@/components/password-field";
+import { validatePassword } from "@/lib/password-policy";
+import { VERIFICATION_CODE_LENGTH } from "@/lib/types";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -28,10 +22,10 @@ export default function SignUpPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const problem = password ? passwordProblem(password) : null;
-
   async function handleSignUp(event: React.FormEvent) {
     event.preventDefault();
+
+    const problem = validatePassword(password, email);
     if (problem) return setError(problem);
     if (password !== confirm) return setError("Those passwords do not match.");
 
@@ -91,25 +85,35 @@ export default function SignUpPage() {
           <div>
             <h1 className="text-2xl font-bold text-ink">Check your email</h1>
             <p className="mt-1 text-sm text-ink-soft">
-              We sent a code to {email}. Enter it to finish setting up.
+              We sent a {VERIFICATION_CODE_LENGTH}-digit code to {email}. Enter
+              it to finish setting up.
             </p>
           </div>
 
           {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
           <Field
-            label="Verification code"
+            label={`Verification code (${VERIFICATION_CODE_LENGTH} digits)`}
             inputMode="numeric"
             autoComplete="one-time-code"
-            maxLength={6}
+            maxLength={VERIFICATION_CODE_LENGTH}
             required
             autoFocus
             value={code}
             onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            placeholder="000000"
+            placeholder={"0".repeat(VERIFICATION_CODE_LENGTH)}
+            error={
+              code.length > 0 && code.length < VERIFICATION_CODE_LENGTH
+                ? `The code is ${VERIFICATION_CODE_LENGTH} digits.`
+                : null
+            }
           />
 
-          <Button type="submit" loading={busy} disabled={code.length !== 6}>
+          <Button
+            type="submit"
+            loading={busy}
+            disabled={code.length !== VERIFICATION_CODE_LENGTH}
+          >
             Verify email
           </Button>
         </form>
@@ -142,15 +146,11 @@ export default function SignUpPage() {
             placeholder="you@example.com"
           />
 
-          <Field
+          <PasswordField
             label="Password"
-            type="password"
-            autoComplete="new-password"
-            required
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            hint="At least 8 characters, with upper, lower, and a number."
-            error={password ? problem : null}
+            onChange={setPassword}
+            email={email}
           />
 
           <Field

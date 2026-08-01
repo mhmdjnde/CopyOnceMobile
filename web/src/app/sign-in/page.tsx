@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, ErrorBanner, Field, Wordmark } from "@/components/ui";
+import { AUTHENTICATOR_CODE_LENGTH } from "@/lib/types";
 
 export default function SignInPage() {
   // useSearchParams needs a Suspense boundary or the whole route bails out to
@@ -120,7 +121,7 @@ function SignInForm() {
           <div>
             <h1 className="text-2xl font-bold text-ink">Two-factor code</h1>
             <p className="mt-1 text-sm text-ink-soft">
-              Enter the 6-digit code from your authenticator app.
+              Enter the {AUTHENTICATOR_CODE_LENGTH}-digit code from your authenticator app.
             </p>
           </div>
 
@@ -131,7 +132,7 @@ function SignInForm() {
             inputMode="numeric"
             autoComplete="one-time-code"
             pattern="[0-9]*"
-            maxLength={6}
+            maxLength={AUTHENTICATOR_CODE_LENGTH}
             required
             autoFocus
             value={code}
@@ -139,7 +140,7 @@ function SignInForm() {
             placeholder="000000"
           />
 
-          <Button type="submit" loading={busy} disabled={code.length !== 6}>
+          <Button type="submit" loading={busy} disabled={code.length !== AUTHENTICATOR_CODE_LENGTH}>
             Verify
           </Button>
         </form>

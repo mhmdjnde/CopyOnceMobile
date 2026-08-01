@@ -80,3 +80,18 @@ export const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 /** Live images per account, enforced by the trigger in 0003. */
 export const MAX_LIVE_IMAGES = 10;
+
+/**
+ * Digits in the emailed sign-up code.
+ *
+ * Configurable in the Supabase project, so it is a constant rather than a
+ * literal — and it is genuinely 8 here, not the 6 people assume. Must match
+ * Validators.verificationCodeLength in the Flutter client.
+ */
+export const VERIFICATION_CODE_LENGTH = 8;
+
+/**
+ * Digits in an authenticator code. Fixed at 6 by the TOTP standard — unrelated
+ * to the emailed code above, and not configurable.
+ */
+export const AUTHENTICATOR_CODE_LENGTH = 6;
