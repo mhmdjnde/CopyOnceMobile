@@ -2,9 +2,24 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCopyOnce } from "@/lib/copyonce-provider";
-import { Button, EmptyState, ErrorBanner, Spinner, cn } from "@/components/ui";
+import {
+  Button,
+  EmptyState,
+  ErrorBanner,
+  SkeletonList,
+  cn,
+} from "@/components/ui";
 import { ClipboardCard } from "@/components/clipboard-card";
 import { MediaViewer } from "@/components/media-viewer";
+import {
+  ImageIcon,
+  Keycap,
+  LinkIcon,
+  PlusIcon,
+  RefreshIcon,
+  SearchIcon,
+  TextIcon,
+} from "@/components/icons";
 import type { ClipboardItem, ClipboardItemType } from "@/lib/types";
 
 type Filter = ClipboardItemType | "all";
@@ -33,7 +48,24 @@ export default function ClipboardPage() {
   const [query, setQuery] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const [viewing, setViewing] = useState<ClipboardItem | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Ids present on the previous render, so arrivals can be highlighted once.
+  const seen = useRef<Set<string>>(new Set());
+  const [arrived, setArrived] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const fresh = items.filter((i) => !seen.current.has(i.id)).map((i) => i.id);
+    const first = seen.current.size === 0;
+    for (const item of items) seen.current.add(item.id);
+
+    // Nothing is "new" on the first load — the whole list would flash.
+    if (first || fresh.length === 0) return;
+    setArrived(new Set(fresh));
+    const timer = window.setTimeout(() => setArrived(new Set()), 900);
+    return () => window.clearTimeout(timer);
+  }, [items]);
 
   const say = useCallback((message: string) => {
     setToast(message);
@@ -43,15 +75,13 @@ export default function ClipboardPage() {
   /**
    * Ctrl+V anywhere on the page captures.
    *
-   * This is the path that always works. A browser will not let a page watch the
-   * clipboard in the background — no API exists, on any platform — so the user
-   * pressing paste is the one moment the content is unambiguously offered to
-   * us. It also handles screenshots, which is the case the phone cannot do at
-   * all.
+   * The path that always works. A browser will not let a page watch the
+   * clipboard in the background — no API exists, on any platform — so the
+   * moment the user presses paste is the one time the content is unambiguously
+   * offered. It also takes screenshots, which the phone cannot do at all.
    */
   useEffect(() => {
     async function onPaste(event: ClipboardEvent) {
-      // Let paste behave normally inside the search box.
       const target = event.target as HTMLElement | null;
       if (
         target &&
@@ -65,23 +95,18 @@ export default function ClipboardPage() {
       const data = event.clipboardData;
       if (!data) return;
 
-      const imageItem = Array.from(data.items).find((i) =>
-        i.type.startsWith("image/"),
-      );
-
-      if (imageItem) {
+      const image = Array.from(data.items).find((i) => i.type.startsWith("image/"));
+      if (image) {
         event.preventDefault();
-        const blob = imageItem.getAsFile();
+        const blob = image.getAsFile();
         if (!blob) return;
-        const extension = imageItem.type.split("/")[1] ?? "png";
-        const saved = await captureImage(blob, `Pasted image.${extension}`);
+        const saved = await captureImage(blob, `Pasted image.${image.type.split("/")[1] ?? "png"}`);
         if (saved) say("Image sent to your devices");
         return;
       }
 
       const text = data.getData("text/plain");
       if (!text.trim()) return;
-
       event.preventDefault();
       const saved = await captureText(text);
       say(saved ? "Saved to CopyOnce" : "That is already at the top");
@@ -91,6 +116,13 @@ export default function ClipboardPage() {
     return () => document.removeEventListener("paste", onPaste);
   }, [captureText, captureImage, say]);
 
+  async function handleRefresh() {
+    setRefreshing(true);
+    await refresh();
+    setRefreshing(false);
+    say("Up to date");
+  }
+
   async function handleReadClipboard() {
     const result = await readSystemClipboard();
     say(
@@ -98,7 +130,7 @@ export default function ClipboardPage() {
         ? "Saved to CopyOnce"
         : result === "empty"
           ? "Nothing new on the clipboard"
-          : "Your browser will not share the clipboard on request — press Ctrl+V instead",
+          : "Your browser will not hand over the clipboard on request — press Ctrl+V instead",
     );
   }
 
@@ -106,18 +138,17 @@ export default function ClipboardPage() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
-
     const saved = await captureImage(file, file.name);
     if (saved) say("Image sent to your devices");
   }
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return items.filter((item) => {
-      const matchesType = filter === "all" || item.content_type === filter;
-      const matchesQuery = !q || item.content.toLowerCase().includes(q);
-      return matchesType && matchesQuery;
-    });
+    return items.filter(
+      (item) =>
+        (filter === "all" || item.content_type === filter) &&
+        (!q || item.content.toLowerCase().includes(q)),
+    );
   }, [items, filter, query]);
 
   const counts = useMemo(
@@ -132,26 +163,26 @@ export default function ClipboardPage() {
 
   return (
     <div className="flex flex-col gap-4 py-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search clipboard…"
-          aria-label="Search clipboard"
-          className="w-full flex-1 rounded-[--radius-m] border border-divider bg-card px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-faint focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent"
-        />
-
-        <div className="flex shrink-0 gap-2">
+      {/* The paste invitation: the product's whole gesture, stated once. */}
+      <div className="flex flex-wrap items-center gap-3 rounded-[--radius-l] border border-divider bg-card px-4 py-3">
+        <span className="flex items-center gap-1.5">
+          <Keycap label="⌘" size={26} />
+          <Keycap label="V" size={26} />
+        </span>
+        <p className="flex-1 text-sm text-ink-soft">
+          Press paste anywhere on this page — text, a link, or a screenshot.
+        </p>
+        <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleReadClipboard}>
             Read clipboard
           </Button>
           <Button
             variant="primary"
             loading={isUploading}
+            icon={!isUploading && <PlusIcon size={16} />}
             onClick={() => fileInput.current?.click()}
           >
-            {isUploading ? "Sending…" : "Add image"}
+            {isUploading ? "Sending…" : "Image"}
           </Button>
           <input
             ref={fileInput}
@@ -164,12 +195,30 @@ export default function ClipboardPage() {
         </div>
       </div>
 
-      <p className="text-xs text-ink-faint">
-        Press <kbd className="rounded bg-surface px-1.5 py-0.5 font-sans">Ctrl</kbd>{" "}
-        + <kbd className="rounded bg-surface px-1.5 py-0.5 font-sans">V</kbd>{" "}
-        anywhere on this page to save what you copied — text, a link, or a
-        screenshot.
-      </p>
+      <div className="flex items-center gap-2">
+        <div className="relative flex-1">
+          <SearchIcon
+            size={16}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search"
+            aria-label="Search clipboard"
+            className="w-full rounded-[--radius-m] border border-divider bg-card py-2.5 pl-9 pr-3.5 text-sm text-ink placeholder:text-ink-faint focus:border-transparent focus:outline-none focus:ring-2 focus:ring-accent"
+          />
+        </div>
+        <button
+          onClick={handleRefresh}
+          aria-label="Refresh"
+          title="Refresh"
+          className="flex size-10 shrink-0 items-center justify-center rounded-[--radius-m] border border-divider bg-card text-ink-soft transition-colors hover:bg-surface hover:text-ink"
+        >
+          <RefreshIcon size={17} className={cn(refreshing && "animate-spin")} />
+        </button>
+      </div>
 
       <div className="flex flex-wrap gap-2" role="tablist" aria-label="Filter by type">
         {FILTERS.map((f) => (
@@ -179,32 +228,29 @@ export default function ClipboardPage() {
             aria-selected={filter === f.id}
             onClick={() => setFilter(f.id)}
             className={cn(
-              "rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+              "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
               filter === f.id
-                ? "border-brand bg-brand text-white"
+                ? "border-transparent bg-brand text-[var(--color-on-accent)]"
                 : "border-divider bg-card text-ink-soft hover:bg-surface",
             )}
           >
-            {f.label} {counts[f.id]}
+            {f.label}
+            <span className="ml-1.5 opacity-60">{counts[f.id]}</span>
           </button>
         ))}
       </div>
 
       {error && <ErrorBanner message={error} onDismiss={clearError} />}
 
-      {status === "loading" && (
-        <div className="flex justify-center py-20">
-          <Spinner className="size-6 text-accent" />
-        </div>
-      )}
+      {status === "loading" && <SkeletonList rows={4} />}
 
-      {status === "error" && !items.length && (
+      {status === "error" && items.length === 0 && (
         <EmptyState
-          icon={<span aria-hidden>⚠</span>}
+          icon={<RefreshIcon size={22} />}
           title="Cannot reach your clipboard"
-          body="Check your connection and try again."
+          body="Check your connection, then try again."
           action={
-            <Button variant="secondary" onClick={() => void refresh()}>
+            <Button variant="secondary" onClick={handleRefresh}>
               Try again
             </Button>
           }
@@ -213,20 +259,25 @@ export default function ClipboardPage() {
 
       {status === "ready" && visible.length === 0 && (
         <EmptyState
-          icon={<span aria-hidden>{filter === "image" ? "🖼" : "📋"}</span>}
+          icon={filter === "image" ? <ImageIcon size={22} /> : filter === "link" ? <LinkIcon size={22} /> : <TextIcon size={22} />}
           title={
             items.length
-              ? "No matches"
+              ? "Nothing matches"
               : filter === "image"
                 ? "No images waiting"
-                : "Nothing here yet"
+                : "Your clipboard is empty"
           }
           body={
-            items.length
-              ? "Try a different search or filter."
-              : filter === "image"
-                ? "Send an image and it appears on your other devices.\nIt clears once they have it, or after 24 hours."
-                : "Copy something and press Ctrl+V here —\nor copy on another device and it lands here."
+            items.length ? (
+              "Try a different search or filter."
+            ) : filter === "image" ? (
+              <>Send an image and it appears on your other devices, then clears once they have it.</>
+            ) : (
+              <>
+                Copy something and press <Keycap label="⌘" size={20} />{" "}
+                <Keycap label="V" size={20} /> here — or copy on your phone and it lands here.
+              </>
+            )
           }
         />
       )}
@@ -237,7 +288,8 @@ export default function ClipboardPage() {
             <li key={item.id}>
               <ClipboardCard
                 item={item}
-                onCopied={() => say("Copied to clipboard")}
+                isNew={arrived.has(item.id)}
+                onCopied={() => say("Copied")}
                 onOpenImage={() => setViewing(item)}
                 onDeleted={(ok) => say(ok ? "Deleted" : "Could not delete")}
               />
@@ -253,7 +305,7 @@ export default function ClipboardPage() {
       {toast && (
         <div
           role="status"
-          className="fixed bottom-6 left-1/2 z-30 -translate-x-1/2 rounded-[--radius-m] bg-brand px-4 py-2.5 text-sm text-white shadow-lg"
+          className="fixed bottom-24 left-1/2 z-30 -translate-x-1/2 rounded-full bg-brand px-4 py-2 text-sm font-medium text-[var(--color-on-accent)] shadow-lg md:bottom-8"
         >
           {toast}
         </div>

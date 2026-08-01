@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button, Card, ErrorBanner, Field, Spinner } from "@/components/ui";
 import { PasswordField } from "@/components/password-field";
 import { validatePassword } from "@/lib/password-policy";
+import { changePassword } from "@/lib/auth";
 import { AUTHENTICATOR_CODE_LENGTH } from "@/lib/types";
 
 interface Factor {
@@ -91,22 +92,30 @@ function ChangePassword({
   onDone: (message: string) => void;
   onError: (message: string) => void;
 }) {
+  const [current, setCurrent] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+
     const problem = validatePassword(password);
     if (problem) return onError(problem);
     if (password !== confirm) return onError("Those passwords do not match.");
 
     setBusy(true);
-    const { error } = await createClient().auth.updateUser({ password });
+    // Proves the current password before changing it. Without that, a borrowed
+    // unlocked laptop is enough to lock the owner out of their own clipboard.
+    const result = await changePassword(createClient(), {
+      currentPassword: current,
+      newPassword: password,
+    });
     setBusy(false);
 
-    if (error) return onError(error.message);
+    if (!result.ok) return onError(result.message);
 
+    setCurrent("");
     setPassword("");
     setConfirm("");
     onDone("Password updated. Your other devices will need to sign in again.");
@@ -114,15 +123,26 @@ function ChangePassword({
 
   return (
     <Card className="p-4">
-      <h2 className="text-sm font-semibold text-ink">Change password</h2>
-      <form onSubmit={handleSubmit} className="mt-3 flex flex-col gap-4">
+      <h2 className="font-display text-sm font-semibold text-ink">Change password</h2>
+      <p className="mt-0.5 text-xs text-ink-faint">
+        Enter your current password first, so a borrowed session cannot lock you out.
+      </p>
+      <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
+        <Field
+          label="Current password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={current}
+          onChange={(e) => setCurrent(e.target.value)}
+        />
         <PasswordField
           label="New password"
           value={password}
           onChange={setPassword}
         />
         <Field
-          label="Confirm password"
+          label="Confirm new password"
           type="password"
           autoComplete="new-password"
           required
@@ -130,7 +150,7 @@ function ChangePassword({
           onChange={(e) => setConfirm(e.target.value)}
           error={confirm && confirm !== password ? "Passwords do not match." : null}
         />
-        <Button type="submit" loading={busy} className="self-start">
+        <Button type="submit" loading={busy} disabled={!current} className="self-start">
           Update password
         </Button>
       </form>

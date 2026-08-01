@@ -29,6 +29,9 @@ enum AuthFailureReason {
   /// The current password given while changing passwords was wrong.
   wrongPassword,
 
+  /// Sign-up was attempted with an address that already has an account.
+  emailTaken,
+
   /// The authenticator code did not match. Usually a stale code or a clock
   /// that has drifted.
   invalidTotpCode,
@@ -81,6 +84,21 @@ class AuthRepository {
             ? null
             : {'display_name': displayName.trim()},
       );
+      // With email confirmation on, Supabase does not error when the address is
+      // already taken — it returns a hollow user so an attacker cannot use
+      // sign-up to discover who has an account. The giveaway is an empty
+      // identities list, and without this check the screen would cheerfully ask
+      // for a code that was never sent.
+      final identities = response.user?.identities;
+      if (response.session == null &&
+          identities != null &&
+          identities.isEmpty) {
+        throw const AuthFailure(
+          'An account with that email already exists. Sign in instead.',
+          reason: AuthFailureReason.emailTaken,
+        );
+      }
+
       return response.session == null
           ? SignUpOutcome.codeSent
           : SignUpOutcome.signedIn;

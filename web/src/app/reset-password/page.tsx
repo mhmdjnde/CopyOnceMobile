@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button, ErrorBanner, Field, Spinner, Wordmark } from "@/components/ui";
+import { Button, ErrorBanner, Field, Spinner } from "@/components/ui";
+import { Keycap } from "@/components/icons";
 import { PasswordField } from "@/components/password-field";
 import { validatePassword } from "@/lib/password-policy";
 
@@ -60,7 +61,12 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-6 py-12">
-      <Wordmark className="mx-auto text-lg text-ink" />
+      <span className="mx-auto flex items-center gap-2.5">
+        <Keycap label="V" size={32} />
+        <span className="font-display text-lg font-bold tracking-tight text-ink">
+          Copy<span className="text-accent">Once</span>
+        </span>
+      </span>
 
       {!hasSession ? (
         <div className="flex flex-col gap-4 text-center">

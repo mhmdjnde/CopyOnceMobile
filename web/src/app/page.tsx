@@ -1,87 +1,105 @@
 import Link from "next/link";
-import { Button, Wordmark } from "@/components/ui";
+import { Button } from "@/components/ui";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { DevicesIcon, ImageIcon, Keycap, TextIcon } from "@/components/icons";
 
 /**
  * Landing page.
  *
- * The copy deliberately does not claim end-to-end encryption. Traffic is
- * encrypted and rows are owner-scoped by RLS, but content is readable at rest
- * by the database — see the note at the top of
- * supabase/migrations/0002_clipboard.sql. Claiming more would be a privacy
- * promise the backend does not currently keep.
+ * The hero is the gesture, not a headline about it: two keycaps, the thing you
+ * actually press. CopyOnce is one motion repeated on every device you own, so
+ * the key is the honest opening image.
+ *
+ * The copy does not claim end-to-end encryption. Traffic is encrypted and rows
+ * are owner-scoped by RLS, but content is readable at rest by the database —
+ * see the note atop supabase/migrations/0002_clipboard.sql.
  */
 export default function LandingPage() {
   const features = [
     {
-      title: "Text, links, and images",
-      body: "Paste anything with Ctrl+V — including screenshots.",
+      Icon: TextIcon,
+      title: "Text and links",
+      body: "Copy on one device, paste on another. Nothing to press on the other end.",
     },
     {
-      title: "Every device you own",
-      body: "Android, iOS, Windows, macOS, and Linux, through any browser.",
+      Icon: ImageIcon,
+      title: "Images that clear themselves",
+      body: "An image stays until your devices have it, then goes. 24 hours at the outside.",
     },
     {
-      title: "Images don't linger",
-      body: "An image clears once your devices have it, or after 24 hours.",
+      Icon: DevicesIcon,
+      title: "Everything you own",
+      body: "Android and iOS, plus any browser on Windows, macOS, or Linux.",
     },
   ];
 
   return (
     <main className="flex flex-1 flex-col">
-      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-6">
-        <Wordmark className="text-lg text-ink" />
-        <nav className="flex items-center gap-2">
+      <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
+        <span className="flex items-center gap-2.5">
+          <Keycap label="V" size={30} />
+          <span className="font-display text-[17px] font-bold tracking-tight text-ink">
+            Copy<span className="text-accent">Once</span>
+          </span>
+        </span>
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
           <Link href="/sign-in">
             <Button variant="ghost">Sign in</Button>
           </Link>
-          <Link href="/sign-up">
-            <Button variant="primary">Get started</Button>
-          </Link>
-        </nav>
+        </div>
       </header>
 
-      <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-6 px-6 py-16 text-center">
-        <h1 className="text-4xl font-bold leading-tight tracking-tight text-ink sm:text-5xl">
-          Copy once,
-          <br />
-          access everywhere.
-        </h1>
-        <p className="max-w-xl text-lg leading-relaxed text-ink-soft">
-          Your clipboard, shared between your own devices. Copy on your phone,
-          paste on your laptop — text, links, and images.
-        </p>
+      <section className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-8 px-6 py-14 text-center">
+        {/* The gesture itself, at hero scale. */}
+        <div className="flex items-end gap-2" aria-hidden="true">
+          <Keycap label="⌘" size={72} />
+          <Keycap label="V" size={92} />
+        </div>
+
+        <div className="flex flex-col gap-4">
+          <h1 className="font-display text-4xl font-bold leading-[1.05] tracking-tight text-ink sm:text-6xl">
+            One clipboard.
+            <br />
+            Every device.
+          </h1>
+          <p className="mx-auto max-w-lg text-lg leading-relaxed text-ink-soft">
+            Copy on your phone. Paste on your laptop. CopyOnce carries text,
+            links, and images between the devices you already own.
+          </p>
+        </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Link href="/sign-up">
-            <Button variant="primary" className="w-full px-6 py-3 sm:w-auto">
+            <Button variant="primary" className="w-full px-7 py-3 text-base sm:w-auto">
               Get started
             </Button>
           </Link>
           <Link href="/sign-in">
-            <Button variant="secondary" className="w-full px-6 py-3 sm:w-auto">
-              I already have an account
+            <Button variant="secondary" className="w-full px-7 py-3 text-base sm:w-auto">
+              I have an account
             </Button>
           </Link>
         </div>
 
-        <ul className="mt-8 grid w-full gap-4 text-left sm:grid-cols-3">
-          {features.map((feature) => (
+        <ul className="mt-6 grid w-full gap-3 text-left sm:grid-cols-3">
+          {features.map(({ Icon, title, body }) => (
             <li
-              key={feature.title}
+              key={title}
               className="rounded-[--radius-l] border border-divider bg-card p-4"
             >
-              <h2 className="text-sm font-semibold text-ink">{feature.title}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-ink-soft">
-                {feature.body}
-              </p>
+              <Icon size={19} className="text-accent" />
+              <h2 className="mt-2.5 font-display text-sm font-semibold text-ink">
+                {title}
+              </h2>
+              <p className="mt-1 text-[13px] leading-relaxed text-ink-soft">{body}</p>
             </li>
           ))}
         </ul>
       </section>
 
       <footer className="mx-auto w-full max-w-5xl px-6 py-8 text-center text-xs text-ink-faint">
-        Your clipboard is private to your account. Traffic is encrypted in
-        transit.
+        Your clipboard is private to your account. Traffic is encrypted in transit.
       </footer>
     </main>
   );

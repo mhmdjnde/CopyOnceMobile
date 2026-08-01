@@ -4,12 +4,14 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button, ErrorBanner, Field, Wordmark } from "@/components/ui";
-import { AUTHENTICATOR_CODE_LENGTH } from "@/lib/types";
+import { resendSignUpCode, signIn, verifyEmailCode } from "@/lib/auth";
+import { Button, ErrorBanner, Field, Notice } from "@/components/ui";
+import { Keycap } from "@/components/icons";
+import { AUTHENTICATOR_CODE_LENGTH, VERIFICATION_CODE_LENGTH } from "@/lib/types";
 
 export default function SignInPage() {
-  // useSearchParams needs a Suspense boundary or the whole route bails out to
-  // client rendering.
+  // useSearchParams needs a Suspense boundary or the route bails to client
+  // rendering entirely.
   return (
     <Suspense fallback={null}>
       <SignInForm />
@@ -17,80 +19,78 @@ export default function SignInPage() {
   );
 }
 
+type Stage = "credentials" | "totp" | "emailCode";
+
 function SignInForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") ?? "/clipboard";
 
+  const [stage, setStage] = useState<Stage>("credentials");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [needsMfa, setNeedsMfa] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const supabase = createClient();
 
-  /**
-   * Signs in, then checks whether this account still owes a second factor.
-   *
-   * Supabase hands back a usable session at assurance level 1 before TOTP is
-   * verified. The database's has_required_assurance() refuses to return any
-   * clipboard row until aal2, so stopping here would show an empty list rather
-   * than an error — which is why the MFA step is part of signing in, not an
-   * optional extra.
-   */
+  function done() {
+    router.push(next);
+    router.refresh();
+  }
+
   async function handleSignIn(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
 
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
-      password,
-    });
+    const result = await signIn(supabase, { email, password });
+    setBusy(false);
 
-    if (signInError) {
-      setError(signInError.message);
-      setBusy(false);
-      return;
+    switch (result.status) {
+      case "signedIn":
+        return done();
+      case "needsTotp":
+        setCode("");
+        return setStage("totp");
+      case "needsEmailCode":
+        // The account exists but was never verified — someone closed the tab
+        // before entering the code. Finishing that is the way in; registering
+        // again is not.
+        setBusy(true);
+        try {
+          await resendSignUpCode(supabase, email);
+          setNotice(`We sent a fresh ${VERIFICATION_CODE_LENGTH}-digit code to ${email}.`);
+        } catch {
+          setNotice("Enter the code we emailed you when you signed up.");
+        }
+        setBusy(false);
+        setCode("");
+        return setStage("emailCode");
+      case "failed":
+        return setError(result.message);
     }
-
-    const { data: aal } =
-      await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-
-    if (aal?.nextLevel === "aal2" && aal.nextLevel !== aal.currentLevel) {
-      setNeedsMfa(true);
-      setBusy(false);
-      return;
-    }
-
-    router.push(next);
-    router.refresh();
   }
 
-  async function handleVerify(event: React.FormEvent) {
+  async function handleTotp(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
 
-    const { data: factors, error: factorError } =
-      await supabase.auth.mfa.listFactors();
-
-    if (factorError || !factors?.totp?.length) {
-      setError("Could not find an authenticator for this account.");
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const factorId = factors?.totp?.[0]?.id;
+    if (!factorId) {
       setBusy(false);
-      return;
+      return setError("Could not find an authenticator for this account.");
     }
 
-    const factorId = factors.totp[0].id;
     const { data: challenge, error: challengeError } =
       await supabase.auth.mfa.challenge({ factorId });
-
     if (challengeError || !challenge) {
-      setError("Could not start verification. Please try again.");
       setBusy(false);
-      return;
+      return setError("Could not start verification. Try again.");
     }
 
     const { error: verifyError } = await supabase.auth.mfa.verify({
@@ -98,60 +98,48 @@ function SignInForm() {
       challengeId: challenge.id,
       code: code.trim(),
     });
+    setBusy(false);
 
     if (verifyError) {
-      setError("That code was not accepted. Try the next one.");
       setCode("");
-      setBusy(false);
-      return;
+      return setError("That code was not accepted. Try the next one.");
     }
-
-    router.push(next);
-    router.refresh();
+    done();
   }
 
+  async function handleEmailCode(event: React.FormEvent) {
+    event.preventDefault();
+    setBusy(true);
+    setError(null);
+
+    const result = await verifyEmailCode(supabase, { email, token: code });
+    setBusy(false);
+
+    if (!result.ok) {
+      setCode("");
+      return setError(result.message);
+    }
+    done();
+  }
+
+  const codeLength =
+    stage === "totp" ? AUTHENTICATOR_CODE_LENGTH : VERIFICATION_CODE_LENGTH;
+
   return (
-    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-6 py-12">
-      <Link href="/" className="mx-auto">
-        <Wordmark className="text-lg text-ink" />
+    <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-7 px-6 py-12">
+      <Link href="/" className="mx-auto flex items-center gap-2.5">
+        <Keycap label="V" size={32} />
+        <span className="font-display text-lg font-bold tracking-tight text-ink">
+          Copy<span className="text-accent">Once</span>
+        </span>
       </Link>
 
-      {needsMfa ? (
-        <form onSubmit={handleVerify} className="flex flex-col gap-5">
-          <div>
-            <h1 className="text-2xl font-bold text-ink">Two-factor code</h1>
-            <p className="mt-1 text-sm text-ink-soft">
-              Enter the {AUTHENTICATOR_CODE_LENGTH}-digit code from your authenticator app.
-            </p>
-          </div>
-
-          {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
-
-          <Field
-            label="Authentication code"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            pattern="[0-9]*"
-            maxLength={AUTHENTICATOR_CODE_LENGTH}
-            required
-            autoFocus
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            placeholder="000000"
-          />
-
-          <Button type="submit" loading={busy} disabled={code.length !== AUTHENTICATOR_CODE_LENGTH}>
-            Verify
-          </Button>
-        </form>
-      ) : (
+      {stage === "credentials" && (
         <form onSubmit={handleSignIn} className="flex flex-col gap-5">
-          <div>
-            <h1 className="text-2xl font-bold text-ink">Welcome back</h1>
-            <p className="mt-1 text-sm text-ink-soft">
-              Sign in to reach your clipboard.
-            </p>
-          </div>
+          <header>
+            <h1 className="font-display text-2xl font-bold text-ink">Welcome back</h1>
+            <p className="mt-1 text-sm text-ink-soft">Sign in to reach your clipboard.</p>
+          </header>
 
           {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
@@ -164,7 +152,6 @@ function SignInForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
           />
-
           <Field
             label="Password"
             type="password"
@@ -188,6 +175,86 @@ function SignInForm() {
           </div>
         </form>
       )}
+
+      {stage === "totp" && (
+        <form onSubmit={handleTotp} className="flex flex-col gap-5">
+          <header>
+            <h1 className="font-display text-2xl font-bold text-ink">Two-factor code</h1>
+            <p className="mt-1 text-sm text-ink-soft">
+              Enter the {AUTHENTICATOR_CODE_LENGTH}-digit code from your authenticator app.
+            </p>
+          </header>
+
+          {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+
+          <CodeField length={codeLength} value={code} onChange={setCode} />
+
+          <Button type="submit" loading={busy} disabled={code.length !== codeLength}>
+            Verify
+          </Button>
+        </form>
+      )}
+
+      {stage === "emailCode" && (
+        <form onSubmit={handleEmailCode} className="flex flex-col gap-5">
+          <header>
+            <h1 className="font-display text-2xl font-bold text-ink">
+              Finish setting up
+            </h1>
+            <p className="mt-1 text-sm text-ink-soft">
+              This account was never verified. Enter the code to finish — you do not
+              need to sign up again.
+            </p>
+          </header>
+
+          {notice && <Notice>{notice}</Notice>}
+          {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
+
+          <CodeField length={codeLength} value={code} onChange={setCode} />
+
+          <Button type="submit" loading={busy} disabled={code.length !== codeLength}>
+            Verify email
+          </Button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              await resendSignUpCode(supabase, email);
+              setNotice("A new code is on its way.");
+            }}
+            className="text-sm text-ink-soft hover:text-ink"
+          >
+            Send another code
+          </button>
+        </form>
+      )}
     </main>
+  );
+}
+
+function CodeField({
+  length,
+  value,
+  onChange,
+}: {
+  length: number;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <Field
+      label={`Code (${length} digits)`}
+      inputMode="numeric"
+      autoComplete="one-time-code"
+      pattern="[0-9]*"
+      maxLength={length}
+      required
+      autoFocus
+      mono
+      className="text-center text-lg tracking-[0.35em]"
+      value={value}
+      onChange={(e) => onChange(e.target.value.replace(/\D/g, ""))}
+      placeholder={"0".repeat(length)}
+    />
   );
 }
