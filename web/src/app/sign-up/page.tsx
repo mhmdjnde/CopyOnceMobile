@@ -8,8 +8,8 @@ import { resendSignUpCode, signUp, verifyEmailCode } from "@/lib/auth";
 import { Button, ErrorBanner, Field, Notice } from "@/components/ui";
 import { PasswordField } from "@/components/password-field";
 import { validatePassword } from "@/lib/password-policy";
-import { Keycap } from "@/components/icons";
 import { VERIFICATION_CODE_LENGTH } from "@/lib/types";
+import { Logo } from "@/components/logo";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -79,11 +79,8 @@ export default function SignUpPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-7 px-6 py-12">
-      <Link href="/" className="mx-auto flex items-center gap-2.5">
-        <Keycap label="V" size={32} />
-        <span className="font-display text-lg font-bold tracking-tight text-ink">
-          Copy<span className="text-accent">Once</span>
-        </span>
+      <Link href="/" className="mx-auto">
+        <Logo height={30} priority />
       </Link>
 
       {stage === "verify" ? (

@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, ErrorBanner, Field, Spinner } from "@/components/ui";
-import { Keycap } from "@/components/icons";
 import { PasswordField } from "@/components/password-field";
 import { validatePassword } from "@/lib/password-policy";
+import { Logo } from "@/components/logo";
 
 /**
  * Lands here from the emailed recovery link.
@@ -61,11 +61,8 @@ export default function ResetPasswordPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-6 py-12">
-      <span className="mx-auto flex items-center gap-2.5">
-        <Keycap label="V" size={32} />
-        <span className="font-display text-lg font-bold tracking-tight text-ink">
-          Copy<span className="text-accent">Once</span>
-        </span>
+      <span className="mx-auto">
+        <Logo height={30} priority />
       </span>
 
       {!hasSession ? (

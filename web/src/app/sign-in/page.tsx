@@ -6,8 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { resendSignUpCode, signIn, verifyEmailCode } from "@/lib/auth";
 import { Button, ErrorBanner, Field, Notice } from "@/components/ui";
-import { Keycap } from "@/components/icons";
 import { AUTHENTICATOR_CODE_LENGTH, VERIFICATION_CODE_LENGTH } from "@/lib/types";
+import { Logo } from "@/components/logo";
 
 export default function SignInPage() {
   // useSearchParams needs a Suspense boundary or the route bails to client
@@ -127,11 +127,8 @@ function SignInForm() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-7 px-6 py-12">
-      <Link href="/" className="mx-auto flex items-center gap-2.5">
-        <Keycap label="V" size={32} />
-        <span className="font-display text-lg font-bold tracking-tight text-ink">
-          Copy<span className="text-accent">Once</span>
-        </span>
+      <Link href="/" className="mx-auto">
+        <Logo height={30} priority />
       </Link>
 
       {stage === "credentials" && (

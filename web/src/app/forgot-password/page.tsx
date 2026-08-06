@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Button, ErrorBanner, Field } from "@/components/ui";
-import { Keycap } from "@/components/icons";
+import { Logo } from "@/components/logo";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -33,11 +33,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 px-6 py-12">
-      <Link href="/" className="mx-auto flex items-center gap-2.5">
-        <Keycap label="V" size={32} />
-        <span className="font-display text-lg font-bold tracking-tight text-ink">
-          Copy<span className="text-accent">Once</span>
-        </span>
+      <Link href="/" className="mx-auto">
+        <Logo height={30} priority />
       </Link>
 
       {sent ? (

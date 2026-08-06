@@ -7,12 +7,12 @@ import { ThemeToggle } from "./theme-toggle";
 import { cn } from "./ui";
 import {
   DevicesIcon,
-  Keycap,
   ShieldIcon,
   SignOutIcon,
   SlidersIcon,
   TextIcon,
 } from "./icons";
+import { Logo } from "./logo";
 
 const TABS = [
   { href: "/clipboard", label: "Clipboard", Icon: TextIcon },
@@ -48,11 +48,8 @@ export function AppNav({ email }: { email: string }) {
     <>
       {/* Desktop rail */}
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-56 flex-col border-r border-divider bg-card px-3 py-5 md:flex">
-        <Link href="/clipboard" className="mb-7 flex items-center gap-2.5 px-2">
-          <Keycap label="V" size={30} />
-          <span className="font-display text-[17px] font-bold tracking-tight text-ink">
-            Copy<span className="text-accent">Once</span>
-          </span>
+        <Link href="/clipboard" className="mb-7 block px-2">
+          <Logo height={26} priority />
         </Link>
 
         <nav aria-label="Main" className="flex flex-col gap-0.5">
@@ -96,10 +93,7 @@ export function AppNav({ email }: { email: string }) {
       {/* Phone: a compact header for identity and theme… */}
       <header className="sticky top-0 z-20 flex items-center justify-between border-b border-divider bg-canvas/90 px-4 py-2.5 backdrop-blur md:hidden">
         <Link href="/clipboard" className="flex items-center gap-2">
-          <Keycap label="V" size={24} />
-          <span className="font-display text-[15px] font-bold text-ink">
-            Copy<span className="text-accent">Once</span>
-          </span>
+          <Logo height={22} priority />
         </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle compact />

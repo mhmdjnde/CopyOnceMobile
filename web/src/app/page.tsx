@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DevicesIcon, ImageIcon, Keycap, TextIcon } from "@/components/icons";
+import { Logo } from "@/components/logo";
 
 /**
  * Landing page.
@@ -36,12 +37,7 @@ export default function LandingPage() {
   return (
     <main className="flex flex-1 flex-col">
       <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 py-5">
-        <span className="flex items-center gap-2.5">
-          <Keycap label="V" size={30} />
-          <span className="font-display text-[17px] font-bold tracking-tight text-ink">
-            Copy<span className="text-accent">Once</span>
-          </span>
-        </span>
+        <Logo height={30} priority />
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <Link href="/sign-in">

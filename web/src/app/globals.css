@@ -122,6 +122,39 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ── Logo variants ──────────────────────────────────────────────────────────
+ *
+ * Both logos are in the markup and CSS shows one. These rules mirror the
+ * palette cascade above rule for rule — system preference first, then the
+ * [data-theme] overrides — so the mark follows a manual light/dark choice
+ * instead of only the OS. Swapping a src in JavaScript would flash the wrong
+ * logo before hydration.
+ */
+/*
+ * Stacked and faded rather than display:none. A display:none image is never
+ * fetched, so toggling the theme would leave a blank gap where the mark should
+ * be until the other file downloaded. Both load; only one is opaque.
+ */
+.logo-stack { position: relative; display: inline-block; }
+.logo-stack img { display: block; }
+
+.logo-dark {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+.logo-light { opacity: 1; }
+
+@media (prefers-color-scheme: dark) {
+  .logo-light { opacity: 0; }
+  .logo-dark { opacity: 1; }
+}
+
+:root[data-theme="dark"] .logo-light { opacity: 0; }
+:root[data-theme="dark"] .logo-dark { opacity: 1; }
+:root[data-theme="light"] .logo-light { opacity: 1; }
+:root[data-theme="light"] .logo-dark { opacity: 0; }
+
 /* This app is driven from the keyboard, so focus has to be obvious. */
 :focus-visible {
   outline: 2px solid var(--color-accent);
