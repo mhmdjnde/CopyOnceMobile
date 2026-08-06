@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'package:gal/gal.dart';
+
 import '../controllers/clipboard_controller.dart';
 import '../models/clipboard_item.dart';
 import '../services/media_picker.dart';
@@ -38,6 +40,15 @@ class _HomeScreenState extends State<HomeScreen> {
   /// null = show all types.
   ClipboardItemType? _typeFilter;
 
+  /// Ids picked for a bulk save.
+  ///
+  /// Only offered on Images: bulk-saving text would mean nothing, and a
+  /// checkbox on every row would be clutter the rest of the time.
+  final _selected = <String>{};
+
+  /// (done, total) while a bulk save runs.
+  (int, int)? _saving;
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -51,6 +62,66 @@ class _HomeScreenState extends State<HomeScreen> {
       final matchesQuery = q.isEmpty || item.content.toLowerCase().contains(q);
       return matchesType && matchesQuery;
     }).toList();
+  }
+
+  /// Saves every picked image to the device's photo library.
+  Future<void> _saveSelected(List<ClipboardItem> images) async {
+    final chosen = images.where((i) => _selected.contains(i.id)).toList();
+    if (chosen.isEmpty) return;
+
+    final controller = context.read<ClipboardController>();
+    setState(() => _saving = (0, chosen.length));
+
+    final fetched = await controller.fetchOriginals(
+      chosen,
+      onProgress: (done, total) {
+        if (mounted) setState(() => _saving = (done, total));
+      },
+    );
+
+    var written = 0;
+    try {
+      if (fetched.isNotEmpty && !await Gal.hasAccess()) {
+        if (!await Gal.requestAccess()) {
+          if (mounted) {
+            setState(() => _saving = null);
+            _toast('CopyOnce needs permission to save to your photos.');
+          }
+          return;
+        }
+      }
+
+      for (final (item, bytes) in fetched) {
+        try {
+          await Gal.putImageBytes(bytes, name: _photoName(item.content));
+          written++;
+        } on GalException {
+          // Keep going: one unsupported file should not abandon the rest.
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _saving = null;
+          _selected.clear();
+        });
+      }
+    }
+
+    if (!mounted) return;
+    _toast(
+      written == chosen.length
+          ? '$written saved to your photos'
+          : '$written of ${chosen.length} saved',
+    );
+  }
+
+  /// Gallery filename: the stored name without its extension, since the
+  /// platform appends its own.
+  static String _photoName(String content) {
+    final dot = content.lastIndexOf('.');
+    final base = dot > 0 ? content.substring(0, dot) : content;
+    return base.isEmpty ? 'CopyOnce' : base;
   }
 
   Future<void> _onCopy(ClipboardItem item) async {
@@ -263,7 +334,10 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'All',
                   count: all.length,
                   selected: _typeFilter == null,
-                  onSelected: (_) => setState(() => _typeFilter = null),
+                  onSelected: (_) => setState(() {
+                    _typeFilter = null;
+                    _selected.clear();
+                  }),
                 ),
                 const SizedBox(width: AppSpacing.s),
                 _FilterChip(
@@ -272,8 +346,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       .where((i) => i.type == ClipboardItemType.text)
                       .length,
                   selected: _typeFilter == ClipboardItemType.text,
-                  onSelected: (_) =>
-                      setState(() => _typeFilter = ClipboardItemType.text),
+                  onSelected: (_) => setState(() {
+                    _typeFilter = ClipboardItemType.text;
+                    _selected.clear();
+                  }),
                 ),
                 const SizedBox(width: AppSpacing.s),
                 _FilterChip(
@@ -282,8 +358,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       .where((i) => i.type == ClipboardItemType.link)
                       .length,
                   selected: _typeFilter == ClipboardItemType.link,
-                  onSelected: (_) =>
-                      setState(() => _typeFilter = ClipboardItemType.link),
+                  onSelected: (_) => setState(() {
+                    _typeFilter = ClipboardItemType.link;
+                    _selected.clear();
+                  }),
                 ),
                 const SizedBox(width: AppSpacing.s),
                 _FilterChip(
@@ -298,6 +376,24 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
+
+          // ── Bulk selection (Images only) ──────────────────────────────────
+          if (_typeFilter == ClipboardItemType.image && items.isNotEmpty)
+            _SelectionBar(
+              selectedCount: _selected.length,
+              totalCount: items.length,
+              saving: _saving,
+              onToggleAll: () => setState(() {
+                if (_selected.length == items.length) {
+                  _selected.clear();
+                } else {
+                  _selected
+                    ..clear()
+                    ..addAll(items.map((i) => i.id));
+                }
+              }),
+              onSave: () => _saveSelected(items),
+            ),
 
           // ── Loading / error / empty / list ────────────────────────────────
           Expanded(
@@ -334,6 +430,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ClipboardCard(
                       item: items[index],
                       onCopy: () => _onCopy(items[index]),
+                      selectable: _typeFilter == ClipboardItemType.image,
+                      selected: _selected.contains(items[index].id),
+                      onToggleSelected: () => setState(() {
+                        final id = items[index].id;
+                        if (!_selected.add(id)) _selected.remove(id);
+                      }),
                     ),
                   ),
                 ),
@@ -347,6 +449,83 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 // ── Supporting widgets ─────────────────────────────────────────────────────────
+
+/// Shown above the list on Images: pick several, save them together.
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.selectedCount,
+    required this.totalCount,
+    required this.saving,
+    required this.onToggleAll,
+    required this.onSave,
+  });
+
+  final int selectedCount;
+  final int totalCount;
+  final (int, int)? saving;
+  final VoidCallback onToggleAll;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final busy = saving != null;
+    final allPicked = selectedCount == totalCount && totalCount > 0;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.m,
+        0,
+        AppSpacing.m,
+        AppSpacing.s,
+      ),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.m,
+          vertical: AppSpacing.s,
+        ),
+        decoration: BoxDecoration(
+          color: context.colors.card,
+          borderRadius: BorderRadius.circular(AppRadius.m),
+          border: Border.all(color: context.colors.divider),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                selectedCount > 0
+                    ? '\$selectedCount selected'
+                    : 'Select images to save several',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: context.colors.textSecondary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: busy ? null : onToggleAll,
+              child: Text(allPicked ? 'Clear' : 'Select all'),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            FilledButton.icon(
+              onPressed: busy || selectedCount == 0 ? null : onSave,
+              icon: busy
+                  ? SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: context.colors.onPrimary,
+                      ),
+                    )
+                  : const Icon(Icons.download_rounded, size: 18),
+              label: Text(busy ? '\${saving!.\$1} of \${saving!.\$2}' : 'Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _FilterChip extends StatelessWidget {
   const _FilterChip({

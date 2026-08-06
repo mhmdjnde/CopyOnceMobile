@@ -49,6 +49,12 @@ interface CopyOnceValue {
 
   saveSettings: (patch: Partial<SyncSettings>) => Promise<void>;
   removeDevice: (id: string) => Promise<void>;
+
+  /** Downloads several originals, marking each delivered. Returns how many. */
+  downloadMany: (
+    items: ClipboardItem[],
+    onProgress?: (done: number, total: number) => void,
+  ) => Promise<number>;
 }
 
 const CopyOnceContext = createContext<CopyOnceValue | null>(null);
@@ -398,6 +404,67 @@ export function CopyOnceProvider({
     [media, report, refresh],
   );
 
+  /**
+   * Saves several originals to disk, one after another.
+   *
+   * Serial on purpose. Browsers rate-limit and often block a burst of
+   * programmatic downloads, and each file is a full-resolution image being
+   * pulled and held in memory — eight at once is a spike for no gain. The small
+   * gap between them is what keeps Chrome from treating the run as abusive.
+   *
+   * Each download counts as delivery, so a bulk save can complete the relay and
+   * clear the images, exactly as saving them one at a time would.
+   */
+  const downloadMany = useCallback(
+    async (
+      toSave: ClipboardItem[],
+      onProgress?: (done: number, total: number) => void,
+    ) => {
+      let saved = 0;
+
+      for (const item of toSave) {
+        try {
+          const blob = await media.original(item);
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = item.content || "copyonce-image";
+          link.click();
+          // Revoke on the next turn: revoking synchronously can cancel the
+          // download in Safari before it has read the blob.
+          window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+          if (deviceRowId.current) {
+            try {
+              await media.markDelivered(item.id, deviceRowId.current);
+            } catch {
+              // A lost receipt only delays deletion to the backstop.
+            }
+          }
+
+          saved++;
+          onProgress?.(saved, toSave.length);
+          await new Promise((r) => window.setTimeout(r, 350));
+        } catch (e) {
+          report(e);
+          break;
+        }
+      }
+
+      if (saved > 0) {
+        try {
+          const removed = await media.reapExpired();
+          if (removed > 0) await refresh();
+        } catch {
+          // Best effort.
+        }
+      }
+
+      return saved;
+    },
+    [media, report, refresh],
+  );
+
   // ── Settings and devices ───────────────────────────────────────────────────
 
   const saveSettings = useCallback(
@@ -447,6 +514,7 @@ export function CopyOnceProvider({
       clearHistory,
       thumbnailUrl,
       openOriginal,
+      downloadMany,
       saveSettings,
       removeDevice,
     }),
@@ -468,6 +536,7 @@ export function CopyOnceProvider({
       clearHistory,
       thumbnailUrl,
       openOriginal,
+      downloadMany,
       saveSettings,
       removeDevice,
     ],

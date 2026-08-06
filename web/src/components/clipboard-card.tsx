@@ -37,6 +37,9 @@ const TYPE = {
 export function ClipboardCard({
   item,
   isNew,
+  selectable = false,
+  selected = false,
+  onToggleSelected,
   onCopied,
   onOpenImage,
   onDeleted,
@@ -44,6 +47,10 @@ export function ClipboardCard({
   item: ClipboardItem;
   /** Arrived from another device since this list last rendered. */
   isNew?: boolean;
+  /** Offered only on the Images view, where bulk download means something. */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelected?: () => void;
   onCopied: () => void;
   onOpenImage: () => void;
   onDeleted: (ok: boolean) => void;
@@ -64,14 +71,26 @@ export function ClipboardCard({
   return (
     <div
       className={cn(
-        "group relative overflow-hidden rounded-[--radius-l] border border-divider bg-card",
-        "transition-colors hover:border-ink-faint/50",
+        "group relative overflow-hidden rounded-[--radius-l] border bg-card",
+        "transition-colors",
+        selected ? "border-accent ring-1 ring-accent" : "border-divider hover:border-ink-faint/50",
         isNew && "arrive",
       )}
     >
       <span className={cn("absolute inset-y-0 left-0 w-[3px]", type.spine)} aria-hidden />
 
       <div className="flex items-start gap-3 py-3 pl-4 pr-3">
+        {selectable && (
+          <label className="mt-0.5 flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelected}
+              aria-label={`Select ${item.content}`}
+              className="size-4 accent-[var(--color-accent)]"
+            />
+          </label>
+        )}
         <button
           onClick={handlePrimary}
           className="min-w-0 flex-1 text-left"

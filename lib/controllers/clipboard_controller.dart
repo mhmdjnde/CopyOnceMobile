@@ -346,6 +346,56 @@ class ClipboardController extends ChangeNotifier {
     }
   }
 
+  /// Fetches several originals, marking each delivered as it lands.
+  ///
+  /// Serial on purpose: each is a full-resolution image held in memory, and
+  /// pulling eight at once on a phone is a spike for no gain. Reports progress
+  /// so the screen can count them off.
+  ///
+  /// Each fetch counts as delivery, so a bulk save can complete the relay and
+  /// clear the images, exactly as saving them one at a time would.
+  Future<List<(ClipboardItem, Uint8List)>> fetchOriginals(
+    List<ClipboardItem> items, {
+    void Function(int done, int total)? onProgress,
+  }) async {
+    final fetched = <(ClipboardItem, Uint8List)>[];
+
+    for (final item in items) {
+      try {
+        final bytes = await _media.original(item);
+        fetched.add((item, bytes));
+        onProgress?.call(fetched.length, items.length);
+
+        final deviceRowId = _deviceRowId;
+        if (deviceRowId != null) {
+          try {
+            await _media.markDelivered(
+              itemId: item.id,
+              deviceRowId: deviceRowId,
+            );
+          } on ClipboardFailure {
+            // A lost receipt only delays deletion to the backstop.
+          }
+        }
+      } on ClipboardFailure catch (failure) {
+        _errorMessage = failure.message;
+        notifyListeners();
+        break;
+      }
+    }
+
+    if (fetched.isNotEmpty) {
+      try {
+        final removed = await _media.reapExpired();
+        if (removed > 0) await refresh();
+      } on ClipboardFailure {
+        // Best effort.
+      }
+    }
+
+    return fetched;
+  }
+
   /// Notes that this device now holds [itemId], and clears it if that was the
   /// last device owing a copy.
   ///

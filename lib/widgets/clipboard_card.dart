@@ -14,12 +14,25 @@ import 'scan_to_copy_sheet.dart';
 /// QR action for handing the item to someone who has neither the app nor an
 /// account.
 class ClipboardCard extends StatefulWidget {
-  const ClipboardCard({super.key, required this.item, required this.onCopy});
+  const ClipboardCard({
+    super.key,
+    required this.item,
+    required this.onCopy,
+    this.selectable = false,
+    this.selected = false,
+    this.onToggleSelected,
+  });
 
   final ClipboardItem item;
 
   /// Called when the user taps the copy button.
   final VoidCallback onCopy;
+
+  /// Offered only on the Images view, where saving several at once means
+  /// something.
+  final bool selectable;
+  final bool selected;
+  final VoidCallback? onToggleSelected;
 
   @override
   State<ClipboardCard> createState() => _ClipboardCardState();
@@ -43,6 +56,10 @@ class _ClipboardCardState extends State<ClipboardCard> {
   /// content is only its filename — so the tap does the thing the user came
   /// for instead.
   void _handleTap() {
+    if (widget.selectable) {
+      widget.onToggleSelected?.call();
+      return;
+    }
     if (widget.item.isImage) {
       MediaViewerScreen.open(context, widget.item);
     } else {
@@ -77,6 +94,12 @@ class _ClipboardCardState extends State<ClipboardCard> {
     final info = _typeInfo;
 
     return Card(
+      shape: widget.selected
+          ? RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.l),
+              side: BorderSide(color: context.colors.accent, width: 1.5),
+            )
+          : null,
       child: InkWell(
         onTap: _handleTap,
         borderRadius: BorderRadius.circular(AppRadius.l),
@@ -88,6 +111,19 @@ class _ClipboardCardState extends State<ClipboardCard> {
               // ── Header row ──────────────────────────────────────────────
               Row(
                 children: [
+                  if (widget.selectable) ...[
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: Checkbox(
+                        value: widget.selected,
+                        onChanged: (_) => widget.onToggleSelected?.call(),
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.s),
+                  ],
                   // Type badge
                   Semantics(
                     label: '${info.label} item',

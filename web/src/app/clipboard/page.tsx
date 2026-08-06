@@ -23,6 +23,7 @@ import {
   Keycap,
   LinkIcon,
   PlusIcon,
+  DownloadIcon,
   RefreshIcon,
   SearchIcon,
   TextIcon,
@@ -49,6 +50,7 @@ export default function ClipboardPage() {
     captureText,
     captureImage,
     readSystemClipboard,
+    downloadMany,
   } = useCopyOnce();
 
   const [filter, setFilter] = useState<Filter>("all");
@@ -57,6 +59,12 @@ export default function ClipboardPage() {
   const [viewing, setViewing] = useState<ClipboardItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
+
+  // Selection only exists on the Images view: bulk-downloading text would be
+  // meaningless, and a checkbox on every row would be clutter the rest of the
+  // time.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState<{ done: number; total: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   // The latest error, for the batch summary — reading `error` directly would
@@ -190,6 +198,33 @@ export default function ClipboardPage() {
     }
   }
 
+  function toggleSelected(id: string) {
+    setSelected((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleDownloadSelected() {
+    const chosen = items.filter((i) => selected.has(i.id));
+    if (chosen.length === 0) return;
+
+    setSaving({ done: 0, total: chosen.length });
+    const saved = await downloadMany(chosen, (done, total) =>
+      setSaving({ done, total }),
+    );
+    setSaving(null);
+    setSelected(new Set());
+
+    say(
+      saved === chosen.length
+        ? `${saved} ${saved === 1 ? "image" : "images"} downloaded`
+        : `${saved} of ${chosen.length} downloaded`,
+    );
+  }
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(
@@ -284,7 +319,11 @@ export default function ClipboardPage() {
             key={f.id}
             role="tab"
             aria-selected={filter === f.id}
-            onClick={() => setFilter(f.id)}
+            onClick={() => {
+              setFilter(f.id);
+              // A selection made on Images cannot be acted on anywhere else.
+              if (f.id !== "image") setSelected(new Set());
+            }}
             className={cn(
               "rounded-full border px-3 py-1.5 text-[13px] font-medium transition-colors",
               filter === f.id
@@ -297,6 +336,39 @@ export default function ClipboardPage() {
           </button>
         ))}
       </div>
+
+      {filter === "image" && counts.image > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-[--radius-m] border border-divider bg-card px-3 py-2">
+          <span className="text-sm text-ink-soft">
+            {selected.size > 0
+              ? `${selected.size} selected`
+              : "Select images to download several at once"}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() =>
+                setSelected(
+                  selected.size === counts.image
+                    ? new Set()
+                    : new Set(items.filter((i) => i.content_type === "image").map((i) => i.id)),
+                )
+              }
+            >
+              {selected.size === counts.image ? "Clear" : "Select all"}
+            </Button>
+            <Button
+              variant="primary"
+              disabled={selected.size === 0}
+              loading={saving !== null}
+              icon={!saving && <DownloadIcon size={16} />}
+              onClick={handleDownloadSelected}
+            >
+              {saving ? `${saving.done} of ${saving.total}` : "Download"}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {error && <ErrorBanner message={error} onDismiss={clearError} />}
 
@@ -351,6 +423,9 @@ export default function ClipboardPage() {
               <ClipboardCard
                 item={item}
                 isNew={arrived.has(item.id)}
+                selectable={filter === "image"}
+                selected={selected.has(item.id)}
+                onToggleSelected={() => toggleSelected(item.id)}
                 onCopied={() => say("Copied")}
                 onOpenImage={() => setViewing(item)}
                 onDeleted={(ok) => say(ok ? "Deleted" : "Could not delete")}
