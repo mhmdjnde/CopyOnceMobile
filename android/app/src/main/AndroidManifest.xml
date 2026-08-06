@@ -15,6 +15,13 @@
     -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <!--
+      Scanning a sign-in code. Declared optional so a device without a camera
+      can still install the app — every other feature works without one.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
         android:label="CopyOnce"
         android:name="${applicationName}"

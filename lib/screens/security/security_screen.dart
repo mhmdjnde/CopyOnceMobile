@@ -10,6 +10,7 @@ import '../../utils/validators.dart';
 import '../../widgets/auth_scaffold.dart';
 import 'change_password_screen.dart';
 import 'two_factor_setup_screen.dart';
+import 'scan_login_screen.dart';
 
 /// Account security: password and two-factor authentication.
 ///
@@ -140,6 +141,28 @@ class _SecurityViewState extends State<_SecurityView> {
                     size: 18,
                   ),
                   onTap: security.isBusy ? null : _openChangePassword,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.l),
+
+              const _SectionLabel('Other devices'),
+              Card(
+                child: ListTile(
+                  leading: Icon(
+                    Icons.qr_code_scanner_rounded,
+                    color: context.colors.textSecondary,
+                    size: 20,
+                  ),
+                  title: const Text('Scan to sign in'),
+                  subtitle: const Text(
+                    'Sign in on a computer by scanning its code',
+                  ),
+                  trailing: Icon(
+                    Icons.chevron_right_rounded,
+                    color: context.colors.textHint,
+                    size: 18,
+                  ),
+                  onTap: () => ScanLoginScreen.open(context),
                 ),
               ),
             ],

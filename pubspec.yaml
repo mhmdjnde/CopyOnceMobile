@@ -30,6 +30,8 @@ dependencies:
   image: ^4.9.1
   gal: ^2.3.3
   uuid: ^4.6.0
+  mobile_scanner: ^7.4.0
+  http: ^1.6.0
 
 # jni 1.0.1 does not build against Android Gradle Plugin 9, which this project
 # uses. Its build.gradle skips `apply plugin: 'kotlin-android'` when AGP is 9 or

@@ -8,6 +8,7 @@ import { resendSignUpCode, signIn, verifyEmailCode } from "@/lib/auth";
 import { Button, ErrorBanner, Field, Notice } from "@/components/ui";
 import { AUTHENTICATOR_CODE_LENGTH, VERIFICATION_CODE_LENGTH } from "@/lib/types";
 import { Logo } from "@/components/logo";
+import { QrSignIn } from "@/components/qr-sign-in";
 
 export default function SignInPage() {
   // useSearchParams needs a Suspense boundary or the route bails to client
@@ -171,6 +172,17 @@ function SignInForm() {
             </Link>
           </div>
         </form>
+      )}
+
+      {stage === "credentials" && (
+        <>
+          <div className="flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-divider" />
+            <span className="text-xs uppercase tracking-wider text-ink-faint">or</span>
+            <span className="h-px flex-1 bg-divider" />
+          </div>
+          <QrSignIn onSignedIn={done} />
+        </>
       )}
 
       {stage === "totp" && (

@@ -45,6 +45,13 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
+
+  // Route handlers authenticate themselves and answer with status codes, not
+  // redirects. Sending an API call to the sign-in page turns "not configured"
+  // into a 307 that no client can interpret — which is exactly what the QR
+  // endpoints hit, since they are meant to be called before there is a session.
+  if (pathname.startsWith("/api/")) return response;
+
   const isPublic =
     pathname === "/" ||
     pathname.startsWith("/sign-in") ||

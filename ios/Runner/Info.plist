@@ -4,12 +4,8 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
-	<!-- Shown when picking an image to send to your other devices. iOS refuses
-	     to open the picker at all without this string, so its absence is a
-	     crash rather than a prompt. -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CopyOnce needs access to your photos so you can send an image to your other devices.</string>
-	<!-- Shown when saving a received image at full resolution. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>CopyOnce saves images you download from your other devices to your photo library.</string>
 	<key>CFBundleDevelopmentRegion</key>
@@ -74,5 +70,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>CopyOnce uses the camera only to scan a sign-in code shown on another device.</string>
 </dict>
 </plist>
