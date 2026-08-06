@@ -10,6 +10,8 @@
  */
 
 import { strict as assert } from "node:assert";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { test } from "node:test";
 
 import {
@@ -160,9 +162,6 @@ test("token pattern list matches the Dart one", () => {
 });
 
 function readDart(): string {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { readFileSync } = require("node:fs") as typeof import("node:fs");
-  const { join } = require("node:path") as typeof import("node:path");
   return readFileSync(
     join(import.meta.dirname, "..", "..", "..", "lib", "utils", "sensitive_content.dart"),
     "utf8",

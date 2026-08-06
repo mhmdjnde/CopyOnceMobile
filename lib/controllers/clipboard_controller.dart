@@ -212,7 +212,59 @@ class ClipboardController extends ChangeNotifier {
   /// a second pick.
   bool get isUploading => _isUploading;
 
-  /// Sends [bytes] to the account's other devices.
+  /// How far through a multi-image upload we are, as (done, total).
+  ///
+  /// Null when nothing is uploading, and null for a single image — "Sending…"
+  /// says enough for one, and "1 of 1" reads like a bug.
+  (int, int)? _uploadProgress;
+  (int, int)? get uploadProgress => _uploadProgress;
+
+  /// Sends several images, one after another.
+  ///
+  /// Serial rather than parallel: each upload puts two objects in Storage and
+  /// decodes a full-resolution image for its thumbnail, and doing eight at once
+  /// on a phone is how you get an out-of-memory kill. It also means a quota
+  /// refusal stops the run instead of firing eight times.
+  ///
+  /// Returns how many were stored. [errorMessage] carries the reason when that
+  /// is fewer than asked for.
+  Future<int> uploadImages(
+    List<({Uint8List bytes, String filename})> images,
+  ) async {
+    if (_isUploading || images.isEmpty) return 0;
+
+    _isUploading = true;
+    _errorMessage = null;
+    _uploadProgress = images.length > 1 ? (0, images.length) : null;
+    notifyListeners();
+
+    var stored = 0;
+    try {
+      for (final image in images) {
+        final saved = await _uploadOne(
+          bytes: image.bytes,
+          filename: image.filename,
+        );
+
+        // A refusal part-way through is almost always the quota, and every
+        // remaining image would hit the same wall. Stop and report.
+        if (saved == null) break;
+
+        stored++;
+        if (_uploadProgress != null) {
+          _uploadProgress = (stored, images.length);
+          notifyListeners();
+        }
+      }
+      return stored;
+    } finally {
+      _isUploading = false;
+      _uploadProgress = null;
+      notifyListeners();
+    }
+  }
+
+  /// Sends one image to the account's other devices.
   ///
   /// Returns the stored item, or null when the upload failed — in which case
   /// [errorMessage] explains why.
@@ -226,6 +278,20 @@ class ClipboardController extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
+    try {
+      return await _uploadOne(bytes: bytes, filename: filename);
+    } finally {
+      _isUploading = false;
+      notifyListeners();
+    }
+  }
+
+  /// The upload itself, without the in-flight bookkeeping, so a batch can call
+  /// it repeatedly without fighting its own guard.
+  Future<ClipboardItem?> _uploadOne({
+    required Uint8List bytes,
+    required String filename,
+  }) async {
     try {
       final saved = await _media.upload(
         bytes: bytes,
@@ -280,17 +346,28 @@ class ClipboardController extends ChangeNotifier {
     }
   }
 
-  /// Notes that this device now holds [itemId].
+  /// Notes that this device now holds [itemId], and clears it if that was the
+  /// last device owing a copy.
+  ///
+  /// The receipt makes the database collapse the image's expiry, but something
+  /// still has to do the deleting. Waiting for the next app launch meant an
+  /// image everyone already had could sit for hours; the client that recorded
+  /// the final receipt is right here and knows the set is complete, so it
+  /// deletes now. The 24-hour backstop is unchanged and still covers devices
+  /// that never come back.
   ///
   /// Silent on failure by design: a lost receipt only means the image waits for
-  /// the 24-hour backstop instead of going now, which is not worth putting in
-  /// front of the user.
+  /// that backstop, which is not worth putting in front of the user.
   Future<void> _recordDelivery(String itemId) async {
     final deviceRowId = _deviceRowId;
     if (deviceRowId == null) return;
 
     try {
       await _media.markDelivered(itemId: itemId, deviceRowId: deviceRowId);
+      // Cheap when nothing is due: the reaper asks for expired rows and gets an
+      // empty list back.
+      final removed = await _media.reapExpired();
+      if (removed > 0) await refresh();
     } on ClipboardFailure {
       // See above.
     }

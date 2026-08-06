@@ -1,4 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      Required, and easy to miss: Flutter's template declares INTERNET only in
+      the debug and profile manifests, where it exists for the hot-reload
+      connection. A release build without this line installs and launches fine
+      and then fails every call to Supabase, which looks like a backend outage
+      rather than a missing permission.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Lets the Wi-Fi-only sync setting tell a metered connection from an
+      unmetered one. Without it connectivity_plus reports "unknown" and the
+      setting silently stops filtering.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:label="CopyOnce"
         android:name="${applicationName}"

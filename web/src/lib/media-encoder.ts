@@ -62,6 +62,70 @@ export function extensionFor(mime: string): string {
   }
 }
 
+/** A decoded image plus how to let go of it, whichever path produced it. */
+interface Decoded {
+  source: CanvasImageSource;
+  width: number;
+  height: number;
+  release: () => void;
+}
+
+/**
+ * Decodes `blob`, preferring createImageBitmap and falling back to an <img>.
+ *
+ * The fast path applies EXIF orientation, so a portrait photo does not
+ * thumbnail on its side. Safari only accepted the `imageOrientation` option
+ * from version 17, and older iOS throws on it — which used to surface as "this
+ * browser cannot read that image format", blaming the file for a browser
+ * limitation.
+ *
+ * The <img> fallback works everywhere. It applies EXIF orientation itself in
+ * every current browser, so the result is the same; it is only slower.
+ */
+async function decode(blob: Blob): Promise<Decoded> {
+  if (typeof createImageBitmap === "function") {
+    try {
+      const bitmap = await createImageBitmap(blob, {
+        imageOrientation: "from-image",
+      });
+      return {
+        source: bitmap,
+        width: bitmap.width,
+        height: bitmap.height,
+        release: () => bitmap.close(),
+      };
+    } catch {
+      // Either the option is unsupported or the format is not decodable here.
+      // Let the fallback decide which.
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  try {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const el = new Image();
+      el.onload = () => resolve(el);
+      el.onerror = () =>
+        reject(
+          new MediaError(
+            "This browser cannot read that image format. Try a JPEG or PNG, or send it from the app.",
+          ),
+        );
+      el.src = url;
+    });
+
+    return {
+      source: image,
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      release: () => URL.revokeObjectURL(url),
+    };
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    throw error;
+  }
+}
+
 /**
  * Builds the list thumbnail: downscaled, re-encoded as JPEG.
  *
@@ -69,21 +133,11 @@ export function extensionFor(mime: string): string {
  * encodes WebP losslessly. Keeping both clients on the same thumbnail format
  * means a thumbnail made on one renders on the other without special cases.
  *
- * Decoding happens through `createImageBitmap`, which applies EXIF orientation,
- * so a portrait photo does not thumbnail on its side.
+ * Decoding goes through `decode` below, which applies EXIF orientation so a
+ * portrait photo does not thumbnail on its side.
  */
 export async function buildThumbnail(blob: Blob): Promise<Blob> {
-  let bitmap: ImageBitmap;
-  try {
-    bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
-  } catch {
-    // Chrome and Firefox cannot decode HEIC. Safari can. Rather than upload an
-    // image the list could never show, say so plainly.
-    throw new MediaError(
-      "This browser cannot read that image format. Try a JPEG or PNG, or send it from the app.",
-    );
-  }
-
+  const bitmap = await decode(blob);
   const longest = Math.max(bitmap.width, bitmap.height);
   // Only ever shrink — upscaling costs bytes and adds nothing.
   const scale = longest <= THUMBNAIL_MAX_EDGE ? 1 : THUMBNAIL_MAX_EDGE / longest;
@@ -98,8 +152,8 @@ export async function buildThumbnail(blob: Blob): Promise<Blob> {
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new MediaError("Could not process that image.");
 
-  ctx.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
+  ctx.drawImage(bitmap.source, 0, 0, width, height);
+  bitmap.release();
 
   const thumb = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob(resolve, "image/jpeg", THUMBNAIL_QUALITY),

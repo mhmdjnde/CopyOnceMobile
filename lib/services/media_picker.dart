@@ -16,24 +16,37 @@ class PickedImage {
 /// Wraps the platform image picker.
 ///
 /// A class rather than a bare function so screens can be tested against a
-/// stand-in — a real picker opens system UI that a widget test cannot dismiss.
+/// stand-in — the real picker opens system UI that a widget test cannot
+/// dismiss.
 class MediaPicker {
   const MediaPicker();
 
-  /// Opens the photo library, restricted to images.
+  /// Opens the photo library, restricted to images, allowing several at once.
   ///
-  /// [ImagePicker.pickImage] shows only images, so a video or document cannot
-  /// be chosen in the first place. That is the first of three gates: the picker
-  /// here, the magic-byte sniff in MediaEncoder, and the bucket's
+  /// [ImagePicker.pickMultiImage] shows only images, so a video or document
+  /// cannot be chosen in the first place. That is the first of three gates: the
+  /// picker here, the magic-byte sniff in MediaEncoder, and the bucket's
   /// allowed_mime_types. The picker is a convenience; the other two are the
   /// ones that hold.
   ///
-  /// Returns null when the user backs out.
-  Future<PickedImage?> pickFromGallery() async {
-    final file = await ImagePicker().pickImage(source: ImageSource.gallery);
-    if (file == null) return null;
+  /// Works the same on both platforms — Android's system picker and the iOS
+  /// PHPicker both support multi-select, and the plugin presents them behind
+  /// this one call.
+  ///
+  /// Returns an empty list when the user backs out.
+  Future<List<PickedImage>> pickFromGallery({int? limit}) async {
+    final files = await ImagePicker().pickMultiImage(limit: limit);
+    if (files.isEmpty) return const [];
 
-    final bytes = await file.readAsBytes();
-    return PickedImage(bytes: bytes, filename: file.name);
+    // Read sequentially rather than with Future.wait: several full-resolution
+    // photos decoded at once is a memory spike on a mid-range phone, and the
+    // upload that follows is serial anyway.
+    final picked = <PickedImage>[];
+    for (final file in files) {
+      picked.add(
+        PickedImage(bytes: await file.readAsBytes(), filename: file.name),
+      );
+    }
+    return picked;
   }
 }

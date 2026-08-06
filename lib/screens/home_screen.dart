@@ -81,24 +81,41 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  /// Picks an image and relays it to the account's other devices.
+  /// Picks one or more images and relays them to the account's other devices.
   Future<void> _uploadImage() async {
     final controller = context.read<ClipboardController>();
 
     final picked = await widget.picker.pickFromGallery();
-    if (picked == null) return; // Backed out of the picker.
+    if (picked.isEmpty) return; // Backed out of the picker.
 
-    final saved = await controller.uploadImage(
-      bytes: picked.bytes,
-      filename: picked.filename,
-    );
+    final stored = await controller.uploadImages([
+      for (final image in picked)
+        (bytes: image.bytes, filename: image.filename),
+    ]);
 
     if (!mounted) return;
-    _toast(
-      saved != null
-          ? 'Sent to your devices'
-          : controller.errorMessage ?? 'Could not send that image',
-    );
+
+    // A batch can half-succeed — the ten-image cap is the usual reason — and
+    // saying so is more useful than either a bare error or a silent partial.
+    if (stored == picked.length) {
+      _toast(stored == 1 ? 'Sent to your devices' : '$stored images sent');
+    } else if (stored == 0) {
+      _toast(controller.errorMessage ?? 'Could not send those images');
+    } else {
+      _toast(
+        '$stored of ${picked.length} sent — '
+        '${controller.errorMessage ?? 'the rest could not be sent'}',
+      );
+    }
+  }
+
+  /// "Sending…" for one image, "3 of 8" for a batch — a count only helps when
+  /// there is more than one thing to count.
+  String _uploadLabel(ClipboardController controller) {
+    if (!controller.isUploading) return 'Add images';
+    final progress = controller.uploadProgress;
+    if (progress == null) return 'Sending…';
+    return '${progress.$1} of ${progress.$2}';
   }
 
   void _toast(String message) {
@@ -203,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     )
                   : const Icon(Icons.add_photo_alternate_outlined),
-              label: Text(controller.isUploading ? 'Sending…' : 'Add image'),
+              label: Text(_uploadLabel(controller)),
             )
           : FloatingActionButton.extended(
               onPressed: _captureNow,

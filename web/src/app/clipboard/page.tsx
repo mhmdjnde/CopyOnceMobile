@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { useCopyOnce } from "@/lib/copyonce-provider";
 import {
   Button,
@@ -49,7 +56,15 @@ export default function ClipboardPage() {
   const [toast, setToast] = useState<string | null>(null);
   const [viewing, setViewing] = useState<ClipboardItem | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [batch, setBatch] = useState<{ done: number; total: number } | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // The latest error, for the batch summary — reading `error` directly would
+  // capture the value from the render that started the loop.
+  const errorRef = useRef<string | null>(null);
+  useEffect(() => {
+    errorRef.current = error;
+  }, [error]);
 
   // Ids present on the previous render, so arrivals can be highlighted once.
   const seen = useRef<Set<string>>(new Set());
@@ -66,6 +81,19 @@ export default function ClipboardPage() {
     const timer = window.setTimeout(() => setArrived(new Set()), 900);
     return () => window.clearTimeout(timer);
   }, [items]);
+
+  // A pointer that is not fine-grained means a touchscreen, and a touchscreen
+  // means no Ctrl+V. Read once after mount so the server and client agree.
+  const hasKeyboard = useSyncExternalStore(
+    () => () => {},
+    () => window.matchMedia("(pointer: fine)").matches,
+    () => true,
+  );
+  const isApple = useSyncExternalStore(
+    () => () => {},
+    () => /Mac|iPhone|iPad/.test(navigator.platform ?? ""),
+    () => false,
+  );
 
   const say = useCallback((message: string) => {
     setToast(message);
@@ -135,11 +163,31 @@ export default function ClipboardPage() {
   }
 
   async function handleFilePicked(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (!file) return;
-    const saved = await captureImage(file, file.name);
-    if (saved) say("Image sent to your devices");
+    if (files.length === 0) return;
+
+    // Serial, not parallel: each upload puts two objects in Storage and decodes
+    // a full-resolution image for its thumbnail, and a quota refusal should stop
+    // the run rather than fire once per file.
+    let stored = 0;
+    for (const file of files) {
+      const saved = await captureImage(file, file.name);
+      if (!saved) break;
+      stored++;
+      if (files.length > 1) setBatch({ done: stored, total: files.length });
+    }
+    setBatch(null);
+
+    // A batch can half-succeed — the ten-image cap is the usual reason — and
+    // saying so beats a bare error or a silent partial.
+    if (stored === files.length) {
+      say(stored === 1 ? "Image sent to your devices" : `${stored} images sent`);
+    } else if (stored === 0) {
+      say(errorRef.current ?? "Could not send those images");
+    } else {
+      say(`${stored} of ${files.length} sent`);
+    }
   }
 
   const visible = useMemo(() => {
@@ -163,14 +211,23 @@ export default function ClipboardPage() {
 
   return (
     <div className="flex flex-col gap-4 py-5">
-      {/* The paste invitation: the product's whole gesture, stated once. */}
+      {/*
+        The paste invitation, but only where a keyboard exists. On a phone
+        browser — iOS Safari especially — there is no Ctrl+V to press, so
+        showing keycaps would be instructing the user to do something
+        impossible. There, the read button is the whole story.
+      */}
       <div className="flex flex-wrap items-center gap-3 rounded-[--radius-l] border border-divider bg-card px-4 py-3">
-        <span className="flex items-center gap-1.5">
-          <Keycap label="⌘" size={26} />
-          <Keycap label="V" size={26} />
-        </span>
+        {hasKeyboard && (
+          <span className="flex items-center gap-1.5">
+            <Keycap label={isApple ? "\u2318" : "Ctrl"} size={26} />
+            <Keycap label="V" size={26} />
+          </span>
+        )}
         <p className="flex-1 text-sm text-ink-soft">
-          Press paste anywhere on this page — text, a link, or a screenshot.
+          {hasKeyboard
+            ? "Press paste anywhere on this page — text, a link, or a screenshot."
+            : "Tap Read clipboard to save what you copied, or add an image."}
         </p>
         <div className="flex items-center gap-2">
           <Button variant="secondary" onClick={handleReadClipboard}>
@@ -182,12 +239,13 @@ export default function ClipboardPage() {
             icon={!isUploading && <PlusIcon size={16} />}
             onClick={() => fileInput.current?.click()}
           >
-            {isUploading ? "Sending…" : "Image"}
+            {batch ? `${batch.done} of ${batch.total}` : isUploading ? "Sending…" : "Images"}
           </Button>
           <input
             ref={fileInput}
             type="file"
             accept="image/*"
+            multiple
             className="sr-only"
             onChange={handleFilePicked}
             tabIndex={-1}
@@ -273,10 +331,14 @@ export default function ClipboardPage() {
             ) : filter === "image" ? (
               <>Send an image and it appears on your other devices, then clears once they have it.</>
             ) : (
-              <>
-                Copy something and press <Keycap label="⌘" size={20} />{" "}
-                <Keycap label="V" size={20} /> here — or copy on your phone and it lands here.
-              </>
+              hasKeyboard ? (
+                <>
+                  Copy something and press <Keycap label={isApple ? "\u2318" : "Ctrl"} size={20} />{" "}
+                  <Keycap label="V" size={20} /> here — or copy on your phone and it lands here.
+                </>
+              ) : (
+                <>Tap Read clipboard to save what you copied — or copy on another device and it lands here.</>
+              )
             )
           }
         />

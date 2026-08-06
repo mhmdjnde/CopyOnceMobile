@@ -366,6 +366,12 @@ export function CopyOnceProvider({
   /**
    * The full-resolution original — and the moment this browser counts as having
    * received it.
+   *
+   * If that receipt completes the set, the image is deleted here rather than at
+   * the next page load. The database collapses the expiry when the last device
+   * reports in, but something still has to do the deleting, and the client
+   * holding the final copy is right here. The 24-hour backstop is unchanged and
+   * still covers devices that never come back.
    */
   const openOriginal = useCallback(
     async (item: ClipboardItem) => {
@@ -374,8 +380,13 @@ export function CopyOnceProvider({
         if (deviceRowId.current) {
           try {
             await media.markDelivered(item.id, deviceRowId.current);
+            // Cheap when nothing is due: the reaper asks for expired rows and
+            // gets an empty list back.
+            const removed = await media.reapExpired();
+            if (removed > 0) await refresh();
           } catch {
-            // Silent by design: a lost receipt only delays deletion.
+            // Silent by design: a lost receipt only delays deletion to the
+            // backstop.
           }
         }
         return blob;
@@ -384,7 +395,7 @@ export function CopyOnceProvider({
         return null;
       }
     },
-    [media, report],
+    [media, report, refresh],
   );
 
   // ── Settings and devices ───────────────────────────────────────────────────
